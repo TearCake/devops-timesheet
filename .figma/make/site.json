@@ -1,0 +1,10 @@
+{
+  "description": "Streamline timesheet management with a user-friendly platform for tracking hours and project details, designed for teams and organizations.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
