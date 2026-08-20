@@ -1,46 +1,124 @@
-# figma-make-app
+# Automated Timesheet Management Platform
 
-A React + Vite + Tailwind CSS v4 project.
+> **Week 3 skeleton** of a 15-week college DevOps project. This is *not* the final MVP.
+> It contains a clean, runnable architecture (frontend + backend + database) with
+> **placeholder** logic only.
 
-## Development
+---
 
-This project uses [pnpm](https://pnpm.io/) for package management.
+## 1. Project overview
 
-To install dependencies:
+A web platform for employees to log daily work hours against projects and for
+managers to review/approve them. At this stage the goal is a minimal, working
+local skeleton that proves the chosen architecture holds together end to end.
 
-```bash
-pnpm install
+## 2. Architecture overview
+
+```text
+┌─────────────────┐        REST / JSON        ┌──────────────────┐        JDBC        ┌────────────┐
+│  React + Vite   │  ───────────────────────► │  Spring Boot API  │  ───────────────► │   MySQL     │
+│  localhost:5173 │  ◄─────────────────────── │  localhost:8080   │  ◄─────────────── │  :3306      │
+└─────────────────┘                           └──────────────────┘                    └────────────┘
 ```
 
-To run the development server:
+Backend follows a standard layered structure:
+`controller → service → repository → model (JPA entities)`, plus a `config` package for CORS.
 
-```bash
-pnpm run dev
+## 3. Tech stack
+
+| Layer            | Technology            |
+|------------------|-----------------------|
+| Frontend         | React + Vite          |
+| Backend          | Java + Spring Boot    |
+| Build tool       | Maven                 |
+| Database         | MySQL                 |
+| API style        | REST (JSON)           |
+
+*Planned for later weeks: Git/GitHub, Jenkins (CI/CD), Selenium (testing), Docker,
+Tomcat/Nginx (deployment), Ansible/Puppet (configuration management).*
+
+## 4. Folder structure
+
+```text
+/
+├── src/                      # React + Vite frontend (Figma mirror UI)
+├── timesheet-management/     
+│   ├── backend/              # Spring Boot + Maven app
+│   └── database/             # schema.sql
+├── package.json              # Frontend dependencies
+└── README.md
 ```
 
-The app will be available on the port configured by your environment (default `8443`).
+## 5. Database setup
 
-## Building for Production
+1. Install and start MySQL (listening on `localhost:3306`).
+2. Create the schema (also creates seed data):
 
-To build the project for production:
+   ```bash
+   mysql -u root -p < timesheet-management/database/schema.sql
+   ```
+
+   This creates the `timesheet_db` database with `users`, `projects`, and
+   `timesheets` tables (primary keys + foreign keys).
+
+## 6. Backend setup
+
+1. Requires **JDK 17+** and **Maven**.
+2. Edit `timesheet-management/backend/src/main/resources/application.properties` and set your MySQL
+   username/password (the placeholders are `CHANGE_ME_DB_USER` / `CHANGE_ME_DB_PASSWORD`).
+3. Run:
+
+   ```bash
+   cd timesheet-management/backend
+   mvn spring-boot:run
+   ```
+
+   Backend starts on **http://localhost:8080**.
+
+## 7. Frontend setup
+
+1. Requires **Node.js 18+**.
+2. Run from the root directory:
+
+   ```bash
+   npm install
+   npm run dev
+   ```
+
+   Frontend starts on **http://localhost:5173** (or the port Vite provides).
+
+## 8. How to run locally
+
+Open three terminals (or start MySQL as a service):
 
 ```bash
-pnpm run build
+# 1) MySQL running on :3306, schema loaded (see section 5)
+
+# 2) Backend
+cd timesheet-management/backend && mvn spring-boot:run
+
+# 3) Frontend (Root folder)
+npm install && npm run dev
 ```
 
-The built files will be located in the `dist/` directory.
+Then open the frontend URL, click **Sign in** (placeholder), and the
+Dashboard will call `GET /api/dashboard` on the backend — a green banner confirms
+the frontend ↔ backend connection.
 
-## Formatting
+## 9. Current Week 3 scope
 
-To format the code:
+- ✅ Clean layered backend (controller / service / repository / model / config)
+- ✅ Placeholder entities: User, Project, Timesheet (+ status enum)
+- ✅ Placeholder REST endpoints returning sample JSON
+- ✅ CORS configured for the local frontend
+- ✅ React frontend: Login, Dashboard, Timesheet pages + sidebar
+- ✅ One real frontend → backend test call (Dashboard)
+- ✅ `database/schema.sql` with tables, PKs, FKs, status field
+- ❌ No real authentication, no full CRUD, no business rules (by design)
 
-```bash
-pnpm run format
-```
+## 10. Future Week 4+ work
 
-## Tech Stack
-
-- **React 19**
-- **Vite 8**
-- **Tailwind CSS v4**
-- **TypeScript 5.7**
+- **Week 4:** Initialize Git/GitHub, branching strategy, commit history.
+- **Week 5+:** Real CRUD, authentication/roles, status-transition rules,
+  validation, then DevOps activities — Jenkins CI/CD, Selenium tests, Docker,
+  Tomcat/Nginx deployment, and Ansible/Puppet configuration management.
