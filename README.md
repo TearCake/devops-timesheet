@@ -49,63 +49,86 @@ Tomcat/Nginx (deployment), Ansible/Puppet (configuration management).*
 └── README.md
 ```
 
-## 5. Database setup
+## 5. Prerequisites & Installations
 
-1. Install and start MySQL (listening on `localhost:3306`).
-2. Create the schema (also creates seed data):
+Ensure the following tools are installed on your system:
 
+- **Node.js (18+) & npm**
+- **Java JDK (17+)** (e.g., Eclipse Temurin 17)
+- **Apache Maven (3.8+)**
+- **MySQL Server (8.0+)** running on port `3306`
+
+> **Quick Windows Setup via Winget / PowerShell:**
+> ```powershell
+> # Install JDK 17
+> winget install EclipseAdoptium.Temurin.17.JDK
+> 
+> # Install MySQL Server
+> winget install Oracle.MySQL
+> ```
+
+---
+
+## 6. Database Setup
+
+1. Ensure MySQL service is running locally on port `3306`.
+2. Import the schema and seed data:
+
+   **On Windows (PowerShell):**
+   ```powershell
+   Get-Content timesheet-management\database\schema.sql | & "C:\Program Files\MySQL\MySQL Server 8.4\bin\mysql.exe" -u root -p
+   ```
+   *(or `Get-Content timesheet-management\database\schema.sql | mysql -u root -p` if MySQL is in your system PATH).*
+
+   **On Linux / macOS / Git Bash:**
    ```bash
    mysql -u root -p < timesheet-management/database/schema.sql
    ```
 
-   This creates the `timesheet_db` database with `users`, `projects`, and
-   `timesheets` tables (primary keys + foreign keys).
+   This initializes the `timesheet_db` database with `users`, `projects`, and `timesheets` tables and default seed data.
 
-## 6. Backend setup
+---
 
-1. Requires **JDK 17+** and **Maven**.
-2. Edit `timesheet-management/backend/src/main/resources/application.properties` and set your MySQL
-   username/password (the placeholders are `CHANGE_ME_DB_USER` / `CHANGE_ME_DB_PASSWORD`).
-3. Run:
+## 7. Backend Setup (Spring Boot)
+
+1. Open `timesheet-management/backend/src/main/resources/application.properties`.
+2. Configure your MySQL credentials:
+   ```properties
+   spring.datasource.username=root
+   spring.datasource.password=YOUR_MYSQL_PASSWORD
+   ```
+3. Start the backend:
 
    ```bash
    cd timesheet-management/backend
    mvn spring-boot:run
    ```
 
-   Backend starts on **http://localhost:8080**.
+   The backend REST API will start on **`http://localhost:8080`**.
 
-## 7. Frontend setup
+---
 
-1. Requires **Node.js 18+**.
-2. Run from the root directory:
+## 8. Frontend Setup (React + Vite)
 
+1. Open a new terminal in the project root directory (`/`):
    ```bash
    npm install
    npm run dev
    ```
 
-   Frontend starts on **http://localhost:5173** (or the port Vite provides).
+2. Open the local URL printed in the terminal (e.g., **`http://localhost:8443`** or **`http://localhost:5173`**).
 
-## 8. How to run locally
+---
 
-Open three terminals (or start MySQL as a service):
+## 9. Verification & Testing
 
-```bash
-# 1) MySQL running on :3306, schema loaded (see section 5)
+1. Open the frontend in your browser and click **Sign in** on the login screen.
+2. The Dashboard will call `GET /api/dashboard` on the backend.
+3. You should see a **green banner** confirming the live connection:
+   > `Connected to backend at localhost:8080.`
+4. If the backend is stopped or unreachable, the UI gracefully falls back to sample preview data.
 
-# 2) Backend
-cd timesheet-management/backend && mvn spring-boot:run
-
-# 3) Frontend (Root folder)
-npm install && npm run dev
-```
-
-Then open the frontend URL, click **Sign in** (placeholder), and the
-Dashboard will call `GET /api/dashboard` on the backend — a green banner confirms
-the frontend ↔ backend connection.
-
-## 9. Current Week 3 scope
+## 10. Current Week 3 Scope
 
 - ✅ Clean layered backend (controller / service / repository / model / config)
 - ✅ Placeholder entities: User, Project, Timesheet (+ status enum)
@@ -116,7 +139,7 @@ the frontend ↔ backend connection.
 - ✅ `database/schema.sql` with tables, PKs, FKs, status field
 - ❌ No real authentication, no full CRUD, no business rules (by design)
 
-## 10. Future Week 4+ work
+## 11. Future Week 4+ Roadmap
 
 - **Week 4:** Initialize Git/GitHub, branching strategy, commit history.
 - **Week 5+:** Real CRUD, authentication/roles, status-transition rules,
