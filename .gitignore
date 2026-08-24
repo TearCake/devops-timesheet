@@ -28,6 +28,17 @@ logs/
 *.sln
 *.sw?
 
+# Agent and workspace configs
+.agent/
+.figma/
+
+# Java / Maven build artifacts
+target/
+.mvn/
+*.class
+*.jar
+*.war
+
 # OS metadata
 .DS_Store
 Thumbs.db
