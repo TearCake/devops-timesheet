@@ -7,10 +7,11 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Service layer for timesheet business logic and database operations.
- * Week 5: Full CRUD implementation with role-based status transitions.
+ * Week 6: Complete MVP functionality with CRUD, status transitions, search, and filtering.
  */
 @Service
 public class TimesheetService {
@@ -23,6 +24,29 @@ public class TimesheetService {
 
     public List<Timesheet> getAllTimesheets() {
         return timesheetRepository.findAll();
+    }
+
+    public List<Timesheet> searchTimesheets(String status, String query) {
+        List<Timesheet> list = timesheetRepository.findAll();
+
+        if (status != null && !status.trim().isEmpty() && !status.equalsIgnoreCase("ALL")) {
+            try {
+                TimesheetStatus targetStatus = TimesheetStatus.valueOf(status.toUpperCase());
+                list = list.stream()
+                        .filter(t -> t.getStatus() == targetStatus)
+                        .collect(Collectors.toList());
+            } catch (IllegalArgumentException ignored) {}
+        }
+
+        if (query != null && !query.trim().isEmpty()) {
+            String lower = query.toLowerCase();
+            list = list.stream()
+                    .filter(t -> (t.getDescription() != null && t.getDescription().toLowerCase().contains(lower))
+                            || (t.getDate() != null && t.getDate().toString().contains(lower)))
+                    .collect(Collectors.toList());
+        }
+
+        return list;
     }
 
     public Optional<Timesheet> getTimesheetById(Long id) {
