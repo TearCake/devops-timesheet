@@ -314,6 +314,35 @@ function Timesheets({
     }
   }
 
+  const exportToCSV = () => {
+    if (rows.length === 0) {
+      alert("No timesheet entries to export.")
+      return
+    }
+    const headers = ["Timesheet ID", "Date", "Project", "Hours", "Description", "Status"]
+    const csvRows = [
+      headers.join(","),
+      ...rows.map((r) =>
+        [
+          r.timesheetId,
+          `"${r.date}"`,
+          `"${getProjectName(r.projectId).replace(/"/g, '""')}"`,
+          r.hours,
+          `"${(r.description || "").replace(/"/g, '""')}"`,
+          r.status,
+        ].join(",")
+      ),
+    ]
+    const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.setAttribute("href", url)
+    link.setAttribute("download", `timesheet_export_${new Date().toISOString().split("T")[0]}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   return (
     <>
       <div className="toolbar">
@@ -325,11 +354,16 @@ function Timesheets({
               : "Review, approve, or reject employee timesheets."}
           </p>
         </div>
-        {role === "EMPLOYEE" && (
-          <button className="btn-primary" onClick={openCreateModal}>
-            + Log New Entry
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button className="btn-secondary" onClick={exportToCSV} title="Export filtered records as CSV">
+            📥 Export CSV
           </button>
-        )}
+          {role === "EMPLOYEE" && (
+            <button className="btn-primary" onClick={openCreateModal}>
+              + Log New Entry
+            </button>
+          )}
+        </div>
       </div>
 
       <Banner conn={conn} />
