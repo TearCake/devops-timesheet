@@ -153,6 +153,19 @@ input:focus { outline: none; border-color: var(--primary); }
 }
 .btn-primary:hover { opacity: 0.9; }
 
+.btn-secondary {
+  padding: 8px 14px;
+  background: var(--panel-2);
+  color: var(--text);
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn-secondary:hover { background: var(--border); }
+
 .action-group { display: flex; gap: 6px; }
 .action-btn {
   padding: 4px 10px;

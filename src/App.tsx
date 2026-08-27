@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react"
 
 /*
-  Automated Timesheet Management Platform — Week 6 MVP Release.
+  Automated Timesheet Management Platform — Full MVP + Project Management & CSV Export.
   Features:
   - Create, View, Edit, and Delete timesheet records (Full CRUD)
   - Search by keyword/date and filter by status
+  - Dynamic Project Management & Selection
   - Role-based workflow (Employee creates/submits, Manager approves/rejects)
   - Dynamic Dashboard statistics
   - Live persistence with Spring Boot REST API & MySQL
@@ -22,13 +23,25 @@ type Row = {
   status: "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED"
 }
 
-const SAMPLE_ROWS: Row[] = [
-  { timesheetId: 1, date: "2026-08-17", hours: 8.0, description: "Homepage layout", status: "APPROVED" },
-  { timesheetId: 2, date: "2026-08-18", hours: 6.5, description: "API integration", status: "SUBMITTED" },
-  { timesheetId: 3, date: "2026-08-18", hours: 2.0, description: "Bug fixes", status: "DRAFT" },
+type Project = {
+  projectId: number
+  projectName: string
+  description?: string
+}
+
+const SAMPLE_PROJECTS: Project[] = [
+  { projectId: 1, projectName: "Website Revamp", description: "Company marketing website rebuild" },
+  { projectId: 2, projectName: "Mobile App", description: "Internal timesheet mobile client" },
+  { projectId: 3, projectName: "Cloud Migration", description: "Infrastructure migration to AWS" },
 ]
 
-const SAMPLE_SUMMARY = { totalHoursThisWeek: 32.5, pendingApproval: 3, approved: 5, activeProjects: 2 }
+const SAMPLE_ROWS: Row[] = [
+  { timesheetId: 1, projectId: 1, date: "2026-08-17", hours: 8.0, description: "Homepage layout", status: "APPROVED" },
+  { timesheetId: 2, projectId: 2, date: "2026-08-18", hours: 6.5, description: "API integration", status: "SUBMITTED" },
+  { timesheetId: 3, projectId: 1, date: "2026-08-18", hours: 2.0, description: "Bug fixes", status: "DRAFT" },
+]
+
+const SAMPLE_SUMMARY = { totalHoursThisWeek: 32.5, pendingApproval: 3, approved: 5, activeProjects: 3 }
 
 type Conn = "loading" | "ok" | "fallback"
 type Role = "EMPLOYEE" | "MANAGER"
@@ -95,6 +108,109 @@ function Dashboard({ refreshKey }: { refreshKey: number }) {
   )
 }
 
+function ProjectsView({ refreshKey, onRefresh }: { refreshKey: number; onRefresh: () => void }) {
+  const { data, conn } = useConnection<{ data: Project[] }>("/projects", { data: SAMPLE_PROJECTS }, refreshKey)
+  const projects = data.data || []
+  const [showModal, setShowModal] = useState(false)
+  const [projectName, setProjectName] = useState("")
+  const [description, setDescription] = useState("")
+  const [submitting, setSubmitting] = useState(false)
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSubmitting(true)
+    try {
+      await fetch(`${API_BASE}/projects`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectName, description }),
+      })
+      setShowModal(false)
+      setProjectName("")
+      setDescription("")
+      onRefresh()
+    } catch {
+      alert("Failed to create project.")
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <>
+      <div className="toolbar">
+        <div>
+          <h1 className="page-title">Projects</h1>
+          <p className="page-sub" style={{ margin: 0 }}>Active client and internal projects.</p>
+        </div>
+        <button className="btn-primary" onClick={() => setShowModal(true)}>
+          + New Project
+        </button>
+      </div>
+
+      <Banner conn={conn} />
+
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Project Name</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            {projects.map((p) => (
+              <tr key={p.projectId}>
+                <td className="mono">#{p.projectId}</td>
+                <td><strong>{p.projectName}</strong></td>
+                <td>{p.description || "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {showModal && (
+        <div className="modal-backdrop" onClick={() => setShowModal(false)}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <h2>Create New Project</h2>
+            <form onSubmit={handleCreate}>
+              <label htmlFor="proj-name">Project Name</label>
+              <input
+                id="proj-name"
+                type="text"
+                placeholder="e.g., Mobile App Redesign"
+                required
+                value={projectName}
+                onChange={(e) => setProjectName(e.target.value)}
+              />
+
+              <label htmlFor="proj-desc">Description</label>
+              <input
+                id="proj-desc"
+                type="text"
+                placeholder="Project objectives..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+
+              <div className="modal-actions">
+                <button type="button" className="action-btn" onClick={() => setShowModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary" disabled={submitting}>
+                  {submitting ? "Creating..." : "Create Project"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
 function Timesheets({
   role,
   refreshKey,
@@ -109,6 +225,9 @@ function Timesheets({
 
   const queryPath = `/timesheets?status=${encodeURIComponent(statusFilter)}&q=${encodeURIComponent(searchQuery)}`
   const { data, conn } = useConnection<{ data: Row[] }>(queryPath, { data: SAMPLE_ROWS }, refreshKey)
+  const { data: projData } = useConnection<{ data: Project[] }>("/projects", { data: SAMPLE_PROJECTS }, refreshKey)
+  const projects = projData.data || SAMPLE_PROJECTS
+
   const rows = data.data || []
 
   const [showModal, setShowModal] = useState(false)
@@ -122,12 +241,17 @@ function Timesheets({
   })
   const [submitting, setSubmitting] = useState(false)
 
+  const getProjectName = (projId?: number) => {
+    const p = projects.find((item) => item.projectId === projId)
+    return p ? p.projectName : `Project #${projId || 1}`
+  }
+
   const openCreateModal = () => {
     setEditingId(null)
     setFormData({
       date: new Date().toISOString().split("T")[0],
       hours: 8,
-      projectId: 1,
+      projectId: projects[0]?.projectId || 1,
       description: "",
       status: "DRAFT",
     })
@@ -190,6 +314,35 @@ function Timesheets({
     }
   }
 
+  const exportToCSV = () => {
+    if (rows.length === 0) {
+      alert("No timesheet entries to export.")
+      return
+    }
+    const headers = ["Timesheet ID", "Date", "Project", "Hours", "Description", "Status"]
+    const csvRows = [
+      headers.join(","),
+      ...rows.map((r) =>
+        [
+          r.timesheetId,
+          `"${r.date}"`,
+          `"${getProjectName(r.projectId).replace(/"/g, '""')}"`,
+          r.hours,
+          `"${(r.description || "").replace(/"/g, '""')}"`,
+          r.status,
+        ].join(",")
+      ),
+    ]
+    const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.setAttribute("href", url)
+    link.setAttribute("download", `timesheet_export_${new Date().toISOString().split("T")[0]}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   return (
     <>
       <div className="toolbar">
@@ -201,11 +354,16 @@ function Timesheets({
               : "Review, approve, or reject employee timesheets."}
           </p>
         </div>
-        {role === "EMPLOYEE" && (
-          <button className="btn-primary" onClick={openCreateModal}>
-            + Log New Entry
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button className="btn-secondary" onClick={exportToCSV} title="Export filtered records as CSV">
+            📥 Export CSV
           </button>
-        )}
+          {role === "EMPLOYEE" && (
+            <button className="btn-primary" onClick={openCreateModal}>
+              + Log New Entry
+            </button>
+          )}
+        </div>
       </div>
 
       <Banner conn={conn} />
@@ -238,6 +396,7 @@ function Timesheets({
             <tr>
               <th>ID</th>
               <th>Date</th>
+              <th>Project</th>
               <th>Hours</th>
               <th>Description</th>
               <th>Status</th>
@@ -247,7 +406,7 @@ function Timesheets({
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ textAlign: "center", color: "var(--muted)", padding: "24px" }}>
+                <td colSpan={7} style={{ textAlign: "center", color: "var(--muted)", padding: "24px" }}>
                   No matching timesheet entries found.
                 </td>
               </tr>
@@ -256,6 +415,7 @@ function Timesheets({
                 <tr key={r.timesheetId}>
                   <td className="mono">#{r.timesheetId}</td>
                   <td className="mono">{r.date}</td>
+                  <td><strong>{getProjectName(r.projectId)}</strong></td>
                   <td className="mono">{r.hours} hrs</td>
                   <td>{r.description || "—"}</td>
                   <td>
@@ -357,6 +517,21 @@ function Timesheets({
                 </div>
               </div>
 
+              <label htmlFor="entry-proj">Project</label>
+              <select
+                id="entry-proj"
+                className="filter-select"
+                style={{ width: "100%", marginBottom: "16px" }}
+                value={formData.projectId}
+                onChange={(e) => setFormData({ ...formData, projectId: parseInt(e.target.value) || 1 })}
+              >
+                {projects.map((p) => (
+                  <option key={p.projectId} value={p.projectId}>
+                    {p.projectName}
+                  </option>
+                ))}
+              </select>
+
               <label htmlFor="entry-desc">Description</label>
               <input
                 id="entry-desc"
@@ -429,7 +604,7 @@ function Login({ onLogin }: { onLogin: (role: Role) => void }) {
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(false)
   const [role, setRole] = useState<Role>("EMPLOYEE")
-  const [page, setPage] = useState<"dashboard" | "timesheets">("dashboard")
+  const [page, setPage] = useState<"dashboard" | "timesheets" | "projects">("dashboard")
   const [refreshKey, setRefreshKey] = useState(0)
 
   const triggerRefresh = () => setRefreshKey((prev) => prev + 1)
@@ -469,6 +644,12 @@ export default function App() {
           Timesheets
         </button>
         <button
+          className={`nav-item ${page === "projects" ? "active" : ""}`}
+          onClick={() => setPage("projects")}
+        >
+          Projects
+        </button>
+        <button
           className="nav-item"
           onClick={() => setRole(role === "EMPLOYEE" ? "MANAGER" : "EMPLOYEE")}
         >
@@ -477,13 +658,15 @@ export default function App() {
         <button className="nav-item" onClick={() => setLoggedIn(false)}>
           Log out
         </button>
-        <div className="sidebar-footer">Timesheet App · Week 6 MVP Release</div>
+        <div className="sidebar-footer">Timesheet App · Full MVP</div>
       </aside>
       <main className="content">
         {page === "dashboard" ? (
           <Dashboard refreshKey={refreshKey} />
-        ) : (
+        ) : page === "timesheets" ? (
           <Timesheets role={role} refreshKey={refreshKey} onRefresh={triggerRefresh} />
+        ) : (
+          <ProjectsView refreshKey={refreshKey} onRefresh={triggerRefresh} />
         )}
       </main>
     </div>

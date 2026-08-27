@@ -38,3 +38,5 @@
 - [x] **US-06**: As an Employee/Manager, I want to search and filter timesheets by status and keyword.
 - [x] **US-07**: As a User, I want to view a real-time summary dashboard with total hours, pending approvals, and active projects.
 - [x] **US-08 (DevOps)**: As a Developer, I want a structured Git branching model (`main`, `develop`, `feature/*`), issue templates, and documented merge conflict resolutions.
+- [x] **US-09**: As an Admin/Manager, I want to view and manage projects so that employees can allocate timesheets dynamically.
+- [x] **US-10**: As a Manager/Employee, I want to export filtered timesheet records to a CSV report for external reporting.
