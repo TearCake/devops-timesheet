@@ -336,7 +336,7 @@ export default function App() {
         <button className="nav-item" onClick={() => setLoggedIn(false)}>
           Log out
         </button>
-        <div className="sidebar-footer">Week 5 · Feature Branch</div>
+        <div className="sidebar-footer">Timesheet App · Develop Integration</div>
       </aside>
       <main className="content">
         {page === "dashboard" ? (
