@@ -173,6 +173,50 @@ input:focus { outline: none; border-color: var(--primary); }
 .action-btn.reject { color: var(--rejected); border-color: rgba(242, 112, 125, 0.4); }
 .action-btn.reject:hover { background: rgba(242, 112, 125, 0.15); }
 
+.filter-bar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 200px;
+  margin-bottom: 0 !important;
+}
+
+.filter-select {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.filter-select:focus { outline: none; border-color: var(--primary); }
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--primary);
+  margin-bottom: 12px;
+}
+
+.action-btn.edit { color: var(--primary); border-color: rgba(79, 209, 197, 0.3); }
+.action-btn.edit:hover { background: rgba(79, 209, 197, 0.15); }
+.action-btn.delete { color: var(--rejected); border-color: rgba(242, 112, 125, 0.3); }
+.action-btn.delete:hover { background: rgba(242, 112, 125, 0.15); }
+
 .modal-backdrop {
   position: fixed;
   inset: 0;

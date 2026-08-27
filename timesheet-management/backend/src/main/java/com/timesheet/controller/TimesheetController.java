@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
@@ -19,7 +20,7 @@ import java.util.Map;
 
 /**
  * REST controller for timesheets.
- * Week 5: Connected to real JPA persistence and MySQL database.
+ * Week 6: Complete MVP endpoints including search, filter, status changes, and full CRUD.
  */
 @RestController
 @RequestMapping("/api/timesheets")
@@ -32,8 +33,15 @@ public class TimesheetController {
     }
 
     @GetMapping
-    public Map<String, Object> getAll() {
-        List<Timesheet> timesheets = timesheetService.getAllTimesheets();
+    public Map<String, Object> getAll(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String q) {
+        List<Timesheet> timesheets;
+        if ((status != null && !status.isEmpty()) || (q != null && !q.isEmpty())) {
+            timesheets = timesheetService.searchTimesheets(status, q);
+        } else {
+            timesheets = timesheetService.getAllTimesheets();
+        }
         Map<String, Object> response = new HashMap<>();
         response.put("message", "Timesheets retrieved successfully");
         response.put("data", timesheets);

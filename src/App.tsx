@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react"
 
 /*
-  Automated Timesheet Management Platform — Week 5 Feature Implementation.
-  - Timesheet Creation & Logging
-  - Status Workflow Transitions (DRAFT -> SUBMITTED -> APPROVED / REJECTED)
+  Automated Timesheet Management Platform — Week 6 MVP Release.
+  Features:
+  - Create, View, Edit, and Delete timesheet records (Full CRUD)
+  - Search by keyword/date and filter by status
+  - Role-based workflow (Employee creates/submits, Manager approves/rejects)
+  - Dynamic Dashboard statistics
   - Live persistence with Spring Boot REST API & MySQL
 */
 
@@ -28,6 +31,7 @@ const SAMPLE_ROWS: Row[] = [
 const SAMPLE_SUMMARY = { totalHoursThisWeek: 32.5, pendingApproval: 3, approved: 5, activeProjects: 2 }
 
 type Conn = "loading" | "ok" | "fallback"
+type Role = "EMPLOYEE" | "MANAGER"
 
 function useConnection<T>(path: string, fallback: T, refreshKey: number = 0) {
   const [data, setData] = useState<T>(fallback)
@@ -91,39 +95,73 @@ function Dashboard({ refreshKey }: { refreshKey: number }) {
   )
 }
 
-function Timesheets({ refreshKey, onRefresh }: { refreshKey: number; onRefresh: () => void }) {
-  const { data, conn } = useConnection<{ data: Row[] }>("/timesheets", { data: SAMPLE_ROWS }, refreshKey)
+function Timesheets({
+  role,
+  refreshKey,
+  onRefresh,
+}: {
+  role: Role
+  refreshKey: number
+  onRefresh: () => void
+}) {
+  const [statusFilter, setStatusFilter] = useState("ALL")
+  const [searchQuery, setSearchQuery] = useState("")
+
+  const queryPath = `/timesheets?status=${encodeURIComponent(statusFilter)}&q=${encodeURIComponent(searchQuery)}`
+  const { data, conn } = useConnection<{ data: Row[] }>(queryPath, { data: SAMPLE_ROWS }, refreshKey)
   const rows = data.data || []
+
   const [showModal, setShowModal] = useState(false)
+  const [editingId, setEditingId] = useState<number | null>(null)
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
     hours: 8,
     projectId: 1,
     description: "",
-    status: "DRAFT",
+    status: "DRAFT" as Row["status"],
   })
   const [submitting, setSubmitting] = useState(false)
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const openCreateModal = () => {
+    setEditingId(null)
+    setFormData({
+      date: new Date().toISOString().split("T")[0],
+      hours: 8,
+      projectId: 1,
+      description: "",
+      status: "DRAFT",
+    })
+    setShowModal(true)
+  }
+
+  const openEditModal = (r: Row) => {
+    setEditingId(r.timesheetId)
+    setFormData({
+      date: r.date,
+      hours: r.hours,
+      projectId: r.projectId || 1,
+      description: r.description,
+      status: r.status,
+    })
+    setShowModal(true)
+  }
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitting(true)
     try {
-      await fetch(`${API_BASE}/timesheets`, {
-        method: "POST",
+      const url = editingId ? `${API_BASE}/timesheets/${editingId}` : `${API_BASE}/timesheets`
+      const method = editingId ? "PUT" : "POST"
+
+      await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       })
       setShowModal(false)
-      setFormData({
-        date: new Date().toISOString().split("T")[0],
-        hours: 8,
-        projectId: 1,
-        description: "",
-        status: "DRAFT",
-      })
       onRefresh()
     } catch {
-      alert("Failed to submit timesheet. Please ensure backend is running.")
+      alert("Failed to save timesheet. Please verify backend is running.")
     } finally {
       setSubmitting(false)
     }
@@ -140,19 +178,59 @@ function Timesheets({ refreshKey, onRefresh }: { refreshKey: number; onRefresh: 
     }
   }
 
+  const handleDelete = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this timesheet entry?")) return
+    try {
+      await fetch(`${API_BASE}/timesheets/${id}`, {
+        method: "DELETE",
+      })
+      onRefresh()
+    } catch {
+      alert("Failed to delete timesheet entry.")
+    }
+  }
+
   return (
     <>
       <div className="toolbar">
         <div>
           <h1 className="page-title">Timesheets</h1>
-          <p className="page-sub" style={{ margin: 0 }}>Create, track, and approve work hour entries.</p>
+          <p className="page-sub" style={{ margin: 0 }}>
+            {role === "EMPLOYEE"
+              ? "Log hours, edit drafts, and submit timesheets for approval."
+              : "Review, approve, or reject employee timesheets."}
+          </p>
         </div>
-        <button className="btn-primary" onClick={() => setShowModal(true)}>
-          + Log New Entry
-        </button>
+        {role === "EMPLOYEE" && (
+          <button className="btn-primary" onClick={openCreateModal}>
+            + Log New Entry
+          </button>
+        )}
       </div>
 
       <Banner conn={conn} />
+
+      {/* Filter and Search Bar */}
+      <div className="filter-bar">
+        <input
+          type="text"
+          className="search-input"
+          placeholder="Search by description or date (YYYY-MM-DD)..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+        <select
+          className="filter-select"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
+          <option value="ALL">All Statuses</option>
+          <option value="DRAFT">Draft</option>
+          <option value="SUBMITTED">Submitted</option>
+          <option value="APPROVED">Approved</option>
+          <option value="REJECTED">Rejected</option>
+        </select>
+      </div>
 
       <div className="table-wrap">
         <table>
@@ -167,51 +245,83 @@ function Timesheets({ refreshKey, onRefresh }: { refreshKey: number; onRefresh: 
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
-              <tr key={r.timesheetId}>
-                <td className="mono">#{r.timesheetId}</td>
-                <td className="mono">{r.date}</td>
-                <td className="mono">{r.hours} hrs</td>
-                <td>{r.description || "—"}</td>
-                <td>
-                  <span className={`badge ${r.status}`}>{r.status}</span>
-                </td>
-                <td>
-                  <div className="action-group">
-                    {r.status === "DRAFT" && (
-                      <button
-                        className="action-btn submit"
-                        title="Submit timesheet for manager review"
-                        onClick={() => handleStatusChange(r.timesheetId, "submit")}
-                      >
-                        Submit
-                      </button>
-                    )}
-                    {r.status === "SUBMITTED" && (
-                      <>
-                        <button
-                          className="action-btn approve"
-                          title="Approve timesheet"
-                          onClick={() => handleStatusChange(r.timesheetId, "approve")}
-                        >
-                          Approve
-                        </button>
-                        <button
-                          className="action-btn reject"
-                          title="Reject timesheet"
-                          onClick={() => handleStatusChange(r.timesheetId, "reject")}
-                        >
-                          Reject
-                        </button>
-                      </>
-                    )}
-                    {(r.status === "APPROVED" || r.status === "REJECTED") && (
-                      <span style={{ fontSize: "12px", color: "var(--muted)" }}>Completed</span>
-                    )}
-                  </div>
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={6} style={{ textAlign: "center", color: "var(--muted)", padding: "24px" }}>
+                  No matching timesheet entries found.
                 </td>
               </tr>
-            ))}
+            ) : (
+              rows.map((r) => (
+                <tr key={r.timesheetId}>
+                  <td className="mono">#{r.timesheetId}</td>
+                  <td className="mono">{r.date}</td>
+                  <td className="mono">{r.hours} hrs</td>
+                  <td>{r.description || "—"}</td>
+                  <td>
+                    <span className={`badge ${r.status}`}>{r.status}</span>
+                  </td>
+                  <td>
+                    <div className="action-group">
+                      {/* Employee Actions */}
+                      {role === "EMPLOYEE" && r.status === "DRAFT" && (
+                        <>
+                          <button
+                            className="action-btn edit"
+                            title="Edit entry"
+                            onClick={() => openEditModal(r)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="action-btn submit"
+                            title="Submit for approval"
+                            onClick={() => handleStatusChange(r.timesheetId, "submit")}
+                          >
+                            Submit
+                          </button>
+                          <button
+                            className="action-btn delete"
+                            title="Delete draft"
+                            onClick={() => handleDelete(r.timesheetId)}
+                          >
+                            Delete
+                          </button>
+                        </>
+                      )}
+
+                      {/* Manager Actions */}
+                      {role === "MANAGER" && r.status === "SUBMITTED" && (
+                        <>
+                          <button
+                            className="action-btn approve"
+                            title="Approve timesheet"
+                            onClick={() => handleStatusChange(r.timesheetId, "approve")}
+                          >
+                            Approve
+                          </button>
+                          <button
+                            className="action-btn reject"
+                            title="Reject timesheet"
+                            onClick={() => handleStatusChange(r.timesheetId, "reject")}
+                          >
+                            Reject
+                          </button>
+                        </>
+                      )}
+
+                      {/* Read-only status for completed or unauthorized states */}
+                      {((role === "EMPLOYEE" && r.status !== "DRAFT") ||
+                        (role === "MANAGER" && r.status !== "SUBMITTED")) && (
+                        <span style={{ fontSize: "12px", color: "var(--muted)" }}>
+                          {r.status === "APPROVED" || r.status === "REJECTED" ? "Completed" : "In Review"}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -219,8 +329,8 @@ function Timesheets({ refreshKey, onRefresh }: { refreshKey: number; onRefresh: 
       {showModal && (
         <div className="modal-backdrop" onClick={() => setShowModal(false)}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            <h2>Log Timesheet Entry</h2>
-            <form onSubmit={handleCreate}>
+            <h2>{editingId ? "Edit Timesheet Entry" : "Log Timesheet Entry"}</h2>
+            <form onSubmit={handleSave}>
               <div className="form-grid">
                 <div>
                   <label htmlFor="entry-date">Date</label>
@@ -270,7 +380,7 @@ function Timesheets({ refreshKey, onRefresh }: { refreshKey: number; onRefresh: 
                   className="btn-primary"
                   disabled={submitting}
                 >
-                  {submitting ? "Saving..." : "Save Entry"}
+                  {submitting ? "Saving..." : editingId ? "Update Entry" : "Save Draft"}
                 </button>
               </div>
             </form>
@@ -281,24 +391,35 @@ function Timesheets({ refreshKey, onRefresh }: { refreshKey: number; onRefresh: 
   )
 }
 
-function Login({ onLogin }: { onLogin: () => void }) {
+function Login({ onLogin }: { onLogin: (role: Role) => void }) {
+  const [selectedRole, setSelectedRole] = useState<Role>("EMPLOYEE")
+
   return (
     <div className="login-wrap">
       <form
         className="login-card"
         onSubmit={(e) => {
           e.preventDefault()
-          onLogin()
+          onLogin(selectedRole)
         }}
       >
         <h1>Timesheet Management</h1>
-        <p>Sign in to continue (demo account).</p>
-        <label htmlFor="email">Email</label>
-        <input id="email" type="email" defaultValue="asha@example.com" />
-        <label htmlFor="password">Password</label>
-        <input id="password" type="password" defaultValue="placeholder" />
+        <p>Select your persona to explore MVP workflows.</p>
+
+        <label htmlFor="role-select">Select Role Persona</label>
+        <select
+          id="role-select"
+          className="filter-select"
+          style={{ width: "100%", marginBottom: "16px" }}
+          value={selectedRole}
+          onChange={(e) => setSelectedRole(e.target.value as Role)}
+        >
+          <option value="EMPLOYEE">Employee (Asha Rao - Log & Submit)</option>
+          <option value="MANAGER">Manager (Mia - Review & Approve)</option>
+        </select>
+
         <button className="btn" type="submit">
-          Sign in
+          Sign in as {selectedRole === "EMPLOYEE" ? "Employee" : "Manager"}
         </button>
       </form>
     </div>
@@ -307,12 +428,21 @@ function Login({ onLogin }: { onLogin: () => void }) {
 
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(false)
+  const [role, setRole] = useState<Role>("EMPLOYEE")
   const [page, setPage] = useState<"dashboard" | "timesheets">("dashboard")
   const [refreshKey, setRefreshKey] = useState(0)
 
   const triggerRefresh = () => setRefreshKey((prev) => prev + 1)
 
-  if (!loggedIn) return <Login onLogin={() => setLoggedIn(true)} />
+  if (!loggedIn)
+    return (
+      <Login
+        onLogin={(r) => {
+          setRole(r)
+          setLoggedIn(true)
+        }}
+      />
+    )
 
   return (
     <div className="layout">
@@ -321,6 +451,11 @@ export default function App() {
           <span className="dot" />
           Timesheet
         </div>
+
+        <div className="role-badge">
+          <span>●</span> {role === "EMPLOYEE" ? "Employee Persona" : "Manager Persona"}
+        </div>
+
         <button
           className={`nav-item ${page === "dashboard" ? "active" : ""}`}
           onClick={() => setPage("dashboard")}
@@ -333,16 +468,22 @@ export default function App() {
         >
           Timesheets
         </button>
+        <button
+          className="nav-item"
+          onClick={() => setRole(role === "EMPLOYEE" ? "MANAGER" : "EMPLOYEE")}
+        >
+          Switch to {role === "EMPLOYEE" ? "Manager" : "Employee"}
+        </button>
         <button className="nav-item" onClick={() => setLoggedIn(false)}>
           Log out
         </button>
-        <div className="sidebar-footer">Week 5 · Feature Branch</div>
+        <div className="sidebar-footer">Week 6 · Full MVP Release</div>
       </aside>
       <main className="content">
         {page === "dashboard" ? (
           <Dashboard refreshKey={refreshKey} />
         ) : (
-          <Timesheets refreshKey={refreshKey} onRefresh={triggerRefresh} />
+          <Timesheets role={role} refreshKey={refreshKey} onRefresh={triggerRefresh} />
         )}
       </main>
     </div>
