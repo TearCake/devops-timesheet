@@ -1,0 +1,2 @@
+# Ignore deployment JAR binaries
+current/*.jar
