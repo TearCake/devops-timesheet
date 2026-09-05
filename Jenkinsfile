@@ -80,7 +80,7 @@ pipeline {
             }
             steps {
                 echo "=== Stage: Deploying to [${params.ENVIRONMENT}] Environment ==="
-                bat "call ${DEPLOY_DIR}/deploy.bat ${params.ENVIRONMENT} ${params.SERVER_PORT} ${env.BUILD_NUMBER}"
+                bat "call timesheet-management\\deploy\\deploy.bat ${params.ENVIRONMENT} ${params.SERVER_PORT} ${env.BUILD_NUMBER}"
             }
         }
 
@@ -90,7 +90,7 @@ pipeline {
             }
             steps {
                 echo "=== Stage: Auditing Deployment Manifest ==="
-                bat "type ${DEPLOY_DIR}\\current\\deployment-manifest.json"
+                bat 'type "timesheet-management\\deploy\\current\\deployment-manifest.json"'
             }
         }
     }
