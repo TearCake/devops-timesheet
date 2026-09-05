@@ -17,7 +17,7 @@
 | **Week 5** | Feature Development with Branching | ✅ **DONE** | Timesheet creation & status workflow on feature branch |
 | **Week 6** | MVP Completion & Git Collaboration | ✅ **DONE** | Search/filter, edit/delete, merge conflict demo, tag v0.1.0-mvp |
 | **Week 7** | Jenkins Installation & CI Pipeline | ✅ **DONE** | Jenkins server, Maven CI build job, artifact archiving |
-| **Week 8** | Pipeline as Code (Jenkinsfile) | ⏳ *Planned* | Declarative Jenkinsfile, automated packaging & deployment |
+| **Week 8** | Pipeline as Code (Jenkinsfile) | ✅ **DONE** | Declarative Jenkinsfile, automated packaging & deployment |
 | **Week 9** | Selenium WebDriver Test Automation | ⏳ *Planned* | UI test scripts, assertions, failure screenshot mechanism |
 | **Week 10** | Continuous Testing in Jenkins | ⏳ *Planned* | Test reporting in Jenkins, quality gates, defect validation |
 | **Week 11** | Docker Containerization | ⏳ *Planned* | Dockerfile, container lifecycle management, port mappings |
@@ -28,7 +28,7 @@
 
 ---
 
-## 🎯 Completed User Stories (Weeks 1–7)
+## 🎯 Completed User Stories (Weeks 1–8)
 
 - [x] **US-01**: As an Employee, I want to create timesheet entries with date, hours, and descriptions so that I can log my daily work.
 - [x] **US-02**: As an Employee, I want to view all my logged timesheets in a responsive table.
@@ -41,3 +41,4 @@
 - [x] **US-09**: As an Admin/Manager, I want to view and manage projects so that employees can allocate timesheets dynamically.
 - [x] **US-10**: As a Manager/Employee, I want to export filtered timesheet records to a CSV report for external reporting.
 - [x] **US-11 (CI/CD)**: As a DevOps Engineer, I want an automated Jenkins CI build job that pulls from GitHub, builds with Maven, and archives the packaged `.jar` artifact.
+- [x] **US-12 (Pipeline as Code)**: As a DevOps Engineer, I want a declarative `Jenkinsfile` pipeline defining checkout, build, automated testing, artifact packaging, parameterized environment selection, and deployment manifest generation.

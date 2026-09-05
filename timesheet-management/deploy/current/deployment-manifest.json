@@ -1,0 +1,9 @@
+{
+  "application": "timesheet-backend",
+  "version": "0.0.1-SNAPSHOT",
+  "environment": "dev",
+  "serverPort": "8080",
+  "buildNumber": "1",
+  "deployedAt": "05/09/2026  9:45:44.77",
+  "status": "DEPLOYED_SUCCESSFULLY"
+}
