@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Automated Timesheet Management Platform</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --success: #16a34a;
+      --warning: #ca8a04;
+      --danger: #dc2626;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 24px; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .page-title { font-size: 28px; font-weight: 700; color: #1e293b; }
+    .page-sub { font-size: 14px; color: var(--text-muted); margin-top: 4px; }
+    .role-badge { padding: 6px 12px; border-radius: 9999px; font-size: 13px; font-weight: 600; background: #e0e7ff; color: #3730a3; cursor: pointer; border: 1px solid #c7d2fe; }
+    
+    /* KPI Cards */
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .kpi-card { background: var(--card-bg); padding: 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .kpi-label { font-size: 13px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .kpi-val { font-size: 28px; font-weight: 700; color: #0f172a; margin-top: 6px; }
+
+    /* Controls Bar */
+    .controls-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .filter-group { display: flex; gap: 12px; align-items: center; }
+    input[type="text"], select, input[type="date"], input[type="number"] {
+      padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); font-size: 14px; outline: none; background: white;
+    }
+    input[type="text"]:focus, select:focus { border-color: var(--primary); ring: 2px var(--primary); }
+    .btn { padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: 0.15s; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-success { background: var(--success); color: white; }
+    .btn-warning { background: var(--warning); color: white; }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-outline { background: white; border: 1px solid var(--border); color: var(--text); }
+
+    /* Table */
+    .table-container { background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+    th { background: #f1f5f9; padding: 12px 16px; font-weight: 600; color: #475569; border-bottom: 1px solid var(--border); }
+    td { padding: 14px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    .badge { display: inline-block; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
+    .badge-DRAFT { background: #f1f5f9; color: #475569; }
+    .badge-SUBMITTED { background: #fef3c7; color: #b45309; }
+    .badge-APPROVED { background: #dcfce7; color: #15803d; }
+    .badge-REJECTED { background: #fee2e2; color: #b91c1c; }
+
+    /* Modal */
+    .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
+    .modal-backdrop.active { display: flex; }
+    .modal { background: white; border-radius: 12px; width: 100%; max-width: 480px; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
+    .modal-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
+    .form-group { margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 13px; font-weight: 500; color: #475569; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+    /* Toast */
+    #status-banner { display: none; padding: 10px 16px; border-radius: 6px; margin-bottom: 16px; font-size: 14px; font-weight: 500; }
+    #status-banner.show { display: block; }
+    #status-banner.success { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1 id="page-title" class="page-title">Timesheet Management Platform</h1>
+        <p id="page-subtitle" class="page-sub">DevOps automated tracking, approval workflow and metrics.</p>
+      </div>
+      <div>
+        <button id="role-toggle-btn" class="role-badge" onclick="toggleRole()">
+          Role: <span id="current-role">EMPLOYEE</span> (Click to switch)
+        </button>
+      </div>
+    </header>
+
+    <div id="status-banner" class="success"></div>
+
+    <!-- 4 KPI Summary Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card" id="kpi-hours">
+        <div class="kpi-label">Hours Logged</div>
+        <div class="kpi-val" id="val-hours">32.5</div>
+      </div>
+      <div class="kpi-card" id="kpi-pending">
+        <div class="kpi-label">Pending Approval</div>
+        <div class="kpi-val" id="val-pending">3</div>
+      </div>
+      <div class="kpi-card" id="kpi-approved">
+        <div class="kpi-label">Approved</div>
+        <div class="kpi-val" id="val-approved">5</div>
+      </div>
+      <div class="kpi-card" id="kpi-projects">
+        <div class="kpi-label">Active Projects</div>
+        <div class="kpi-val" id="val-projects">3</div>
+      </div>
+    </div>
+
+    <!-- Controls Bar -->
+    <div class="controls-bar">
+      <div class="filter-group">
+        <input type="text" id="search-input" placeholder="Search by description or project..." oninput="renderTable()" />
+        <select id="status-filter" onchange="renderTable()">
+          <option value="ALL">All Statuses</option>
+          <option value="DRAFT">Draft</option>
+          <option value="SUBMITTED">Submitted</option>
+          <option value="APPROVED">Approved</option>
+          <option value="REJECTED">Rejected</option>
+        </select>
+      </div>
+      <div>
+        <button id="btn-create-timesheet" class="btn btn-primary" onclick="openCreateModal()">+ Log Time</button>
+      </div>
+    </div>
+
+    <!-- Timesheets Table -->
+    <div class="table-container">
+      <table id="timesheets-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Project</th>
+            <th>Date</th>
+            <th>Hours</th>
+            <th>Description</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="timesheet-rows">
+          <!-- Populated by JS -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Create Timesheet Modal -->
+  <div id="create-modal" class="modal-backdrop">
+    <div class="modal">
+      <h2 class="modal-title">Log Daily Timesheet</h2>
+      <form id="timesheet-form" onsubmit="handleCreateTimesheet(event)">
+        <div class="form-group">
+          <label for="project-select">Project</label>
+          <select id="project-select" required>
+            <option value="1">Website Revamp</option>
+            <option value="2">Mobile App</option>
+            <option value="3">Cloud Migration</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="timesheet-date">Date</label>
+          <input type="date" id="timesheet-date" required value="2026-09-05" />
+        </div>
+        <div class="form-group">
+          <label for="timesheet-hours">Working Hours (0.5 - 24)</label>
+          <input type="number" id="timesheet-hours" min="0.5" max="24" step="0.5" required value="8.0" />
+        </div>
+        <div class="form-group">
+          <label for="timesheet-description">Work Description</label>
+          <input type="text" id="timesheet-description" placeholder="e.g. Implemented feature X" required />
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" onclick="closeCreateModal()">Cancel</button>
+          <button type="submit" id="btn-save-timesheet" class="btn btn-primary">Save Timesheet</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let currentRole = "EMPLOYEE";
+    const projects = {
+      1: "Website Revamp",
+      2: "Mobile App",
+      3: "Cloud Migration"
+    };
+
+    let timesheets = [
+      { id: 1, projectId: 1, date: "2026-09-01", hours: 8.0, description: "Homepage layout and navigation", status: "APPROVED" },
+      { id: 2, projectId: 2, date: "2026-09-02", hours: 6.5, description: "API integration and testing", status: "SUBMITTED" },
+      { id: 3, projectId: 3, date: "2026-09-03", hours: 4.0, description: "Database schema migration", status: "DRAFT" }
+    ];
+
+    function showBanner(msg) {
+      const b = document.getElementById("status-banner");
+      b.textContent = msg;
+      b.className = "show success";
+      setTimeout(() => { b.className = ""; }, 4000);
+    }
+
+    function toggleRole() {
+      currentRole = currentRole === "EMPLOYEE" ? "MANAGER" : "EMPLOYEE";
+      document.getElementById("current-role").textContent = currentRole;
+      renderTable();
+      showBanner("Active role switched to: " + currentRole);
+    }
+
+    function openCreateModal() {
+      document.getElementById("create-modal").classList.add("active");
+    }
+
+    function closeCreateModal() {
+      document.getElementById("create-modal").classList.remove("active");
+    }
+
+    function handleCreateTimesheet(e) {
+      e.preventDefault();
+      const projId = parseInt(document.getElementById("project-select").value);
+      const date = document.getElementById("timesheet-date").value;
+      const hours = parseFloat(document.getElementById("timesheet-hours").value);
+      const desc = document.getElementById("timesheet-description").value;
+
+      const newId = timesheets.length > 0 ? Math.max(...timesheets.map(t => t.id)) + 1 : 1;
+      timesheets.push({
+        id: newId,
+        projectId: projId,
+        date: date,
+        hours: hours,
+        description: desc,
+        status: "DRAFT"
+      });
+
+      updateKpis();
+      closeCreateModal();
+      document.getElementById("timesheet-form").reset();
+      document.getElementById("timesheet-hours").value = "8.0";
+      document.getElementById("timesheet-date").value = "2026-09-05";
+      renderTable();
+      showBanner("Timesheet #" + newId + " created as DRAFT successfully!");
+    }
+
+    function submitTimesheet(id) {
+      const item = timesheets.find(t => t.id === id);
+      if (item && item.status === "DRAFT") {
+        item.status = "SUBMITTED";
+        updateKpis();
+        renderTable();
+        showBanner("Timesheet #" + id + " submitted for manager review!");
+      }
+    }
+
+    function approveTimesheet(id) {
+      const item = timesheets.find(t => t.id === id);
+      if (item && item.status === "SUBMITTED") {
+        item.status = "APPROVED";
+        updateKpis();
+        renderTable();
+        showBanner("Timesheet #" + id + " has been APPROVED!");
+      }
+    }
+
+    function rejectTimesheet(id) {
+      const item = timesheets.find(t => t.id === id);
+      if (item && item.status === "SUBMITTED") {
+        item.status = "REJECTED";
+        updateKpis();
+        renderTable();
+        showBanner("Timesheet #" + id + " has been REJECTED.");
+      }
+    }
+
+    function updateKpis() {
+      const totalHours = timesheets.reduce((sum, t) => sum + t.hours, 0);
+      const pending = timesheets.filter(t => t.status === "SUBMITTED").length;
+      const approved = timesheets.filter(t => t.status === "APPROVED").length;
+
+      document.getElementById("val-hours").textContent = totalHours.toFixed(1);
+      document.getElementById("val-pending").textContent = pending;
+      document.getElementById("val-approved").textContent = approved;
+    }
+
+    function renderTable() {
+      const query = document.getElementById("search-input").value.toLowerCase();
+      const statusFilter = document.getElementById("status-filter").value;
+      const tbody = document.getElementById("timesheet-rows");
+      tbody.innerHTML = "";
+
+      const filtered = timesheets.filter(t => {
+        const projName = (projects[t.projectId] || "").toLowerCase();
+        const matchesQuery = t.description.toLowerCase().includes(query) || projName.includes(query);
+        const matchesStatus = statusFilter === "ALL" || t.status === statusFilter;
+        return matchesQuery && matchesStatus;
+      });
+
+      filtered.forEach(t => {
+        const tr = document.createElement("tr");
+        tr.id = "timesheet-row-" + t.id;
+
+        let actionHtml = "";
+        if (currentRole === "EMPLOYEE") {
+          if (t.status === "DRAFT") {
+            actionHtml = `<button id="btn-submit-${t.id}" class="btn btn-warning" onclick="submitTimesheet(${t.id})">Submit</button>`;
+          } else {
+            actionHtml = `<span style="color: var(--text-muted); font-size: 13px;">No actions</span>`;
+          }
+        } else if (currentRole === "MANAGER") {
+          if (t.status === "SUBMITTED") {
+            actionHtml = `
+              <button id="btn-approve-${t.id}" class="btn btn-success" style="margin-right:6px;" onclick="approveTimesheet(${t.id})">Approve</button>
+              <button id="btn-reject-${t.id}" class="btn btn-danger" onclick="rejectTimesheet(${t.id})">Reject</button>
+            `;
+          } else {
+            actionHtml = `<span style="color: var(--text-muted); font-size: 13px;">Reviewed</span>`;
+          }
+        }
+
+        tr.innerHTML = `
+          <td><strong>#${t.id}</strong></td>
+          <td id="row-project-${t.id}">${projects[t.projectId] || "General"}</td>
+          <td>${t.date}</td>
+          <td id="row-hours-${t.id}">${t.hours} hrs</td>
+          <td id="row-desc-${t.id}">${t.description}</td>
+          <td><span id="row-status-${t.id}" class="badge badge-${t.status}">${t.status}</span></td>
+          <td>${actionHtml}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Initial render
+    updateKpis();
+    renderTable();
+  </script>
+</body>
+</html>
