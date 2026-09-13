@@ -55,13 +55,21 @@ pipeline {
             }
         }
 
-        stage('Automated Tests') {
+        stage('Automated Tests & Quality Gate') {
             when {
                 expression { params.RUN_TESTS == true }
             }
             steps {
-                echo "=== Stage: Running Automated Unit & Lifecycle Tests ==="
+                echo "=== Stage: Running Automated Unit & Selenium Tests ==="
                 bat "mvn test -f ${BACKEND_DIR}/pom.xml"
+            }
+            post {
+                always {
+                    echo "=== Publishing JUnit Test Results ==="
+                    junit allowEmptyResults: true, testResults: "${BACKEND_DIR}/target/surefire-reports/*.xml"
+                    echo "=== Archiving Test Evidence Screenshots ==="
+                    archiveArtifacts allowEmptyArchive: true, artifacts: "${BACKEND_DIR}/target/screenshots/*.png"
+                }
             }
         }
 
