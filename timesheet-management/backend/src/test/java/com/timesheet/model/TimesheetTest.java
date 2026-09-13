@@ -56,6 +56,11 @@ class TimesheetTest {
     void testWorkingHoursRange() {
         Timesheet timesheet = new Timesheet();
         timesheet.setHours(8.0);
-        assertTrue(timesheet.getHours() > 0 && timesheet.getHours() <= 24.0, "Hours must be between 0 and 24");
+        // ==============================================================
+        // DELIBERATE DEFECT (Week 10 Demonstration)
+        // Defect: Faulty assertion expecting hours to be greater than 24
+        // Expected consequence: Build fails, Quality Gate halts deployment
+        // ==============================================================
+        assertTrue(timesheet.getHours() > 24.0, "Hours must be greater than 24 (Deliberate Defect)");
     }
 }
