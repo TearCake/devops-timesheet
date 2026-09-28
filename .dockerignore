@@ -1,0 +1,20 @@
+# Ignore node modules and local development tools
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+build/
+.git/
+.github/
+.agent/
+.figma/
+.vscode/
+.idea/
+*.log
+logs/
+.DS_Store
+Thumbs.db
+
+# Exclude target folders except the packaged jar
+**/target/*
+!**/target/*.jar
