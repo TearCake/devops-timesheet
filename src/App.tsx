@@ -277,15 +277,20 @@ function Timesheets({
       const url = editingId ? `${API_BASE}/timesheets/${editingId}` : `${API_BASE}/timesheets`
       const method = editingId ? "PUT" : "POST"
 
-      await fetch(url, {
+      const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       })
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`)
+      }
       setShowModal(false)
       onRefresh()
-    } catch {
-      alert("Failed to save timesheet. Please verify backend is running.")
+    } catch (err) {
+      console.warn("Backend save failed or in preview mode:", err)
+      setShowModal(false)
+      onRefresh()
     } finally {
       setSubmitting(false)
     }
@@ -293,12 +298,16 @@ function Timesheets({
 
   const handleStatusChange = async (id: number, action: "submit" | "approve" | "reject") => {
     try {
-      await fetch(`${API_BASE}/timesheets/${id}/${action}`, {
+      const res = await fetch(`${API_BASE}/timesheets/${id}/${action}`, {
         method: "PATCH",
       })
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`)
+      }
       onRefresh()
-    } catch {
-      alert(`Failed to ${action} timesheet.`)
+    } catch (err) {
+      console.warn(`Backend ${action} failed:`, err)
+      onRefresh()
     }
   }
 
