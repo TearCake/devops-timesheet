@@ -11,7 +11,27 @@ import { useEffect, useState } from "react"
   - Live persistence with Spring Boot REST API & MySQL
 */
 
-const API_BASE = "http://localhost:8080/api"
+let detectedPort = "8085"
+
+async function apiFetch(path: string, options?: RequestInit): Promise<Response> {
+  try {
+    const res = await fetch(`http://localhost:${detectedPort}/api${path}`, options)
+    if (res.ok || res.status < 500) {
+      return res
+    }
+  } catch {}
+
+  const fallbackPort = detectedPort === "8085" ? "8080" : "8085"
+  try {
+    const res = await fetch(`http://localhost:${fallbackPort}/api${path}`, options)
+    if (res.ok || res.status < 500) {
+      detectedPort = fallbackPort
+      return res
+    }
+  } catch {}
+
+  return fetch(`http://localhost:${detectedPort}/api${path}`, options)
+}
 
 type Row = {
   timesheetId: number
@@ -49,16 +69,18 @@ type Role = "EMPLOYEE" | "MANAGER"
 function useConnection<T>(path: string, fallback: T, refreshKey: number = 0) {
   const [data, setData] = useState<T>(fallback)
   const [conn, setConn] = useState<Conn>("loading")
+  const [activePort, setActivePort] = useState<string>(detectedPort)
 
   useEffect(() => {
     let alive = true
     setConn("loading")
-    fetch(`${API_BASE}${path}`)
+    apiFetch(path)
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((d) => {
         if (!alive) return
         setData(d)
         setConn("ok")
+        setActivePort(detectedPort)
       })
       .catch(() => {
         if (alive) setConn("fallback")
@@ -68,17 +90,22 @@ function useConnection<T>(path: string, fallback: T, refreshKey: number = 0) {
     }
   }, [path, refreshKey])
 
-  return { data, conn }
+  return { data, conn, activePort }
 }
 
-function Banner({ conn }: { conn: Conn }) {
+function Banner({ conn, activePort }: { conn: Conn; activePort?: string }) {
   if (conn === "loading") return <div className="banner">Connecting to backend…</div>
   if (conn === "ok")
-    return <div className="banner ok">Connected to backend at <span className="mono">localhost:8080</span>.</div>
+    return (
+      <div className="banner ok">
+        Connected to {activePort === "8085" ? "Docker container" : "backend"} at{" "}
+        <span className="mono">localhost:{activePort || detectedPort}</span>.
+      </div>
+    )
   return (
     <div className="banner">
       Preview mode — showing sample data. Run the Spring Boot backend on{" "}
-      <span className="mono">localhost:8080</span> to see live API responses.
+      <span className="mono">localhost:8080</span> or Docker on <span className="mono">localhost:8085</span>.
     </div>
   )
 }
@@ -120,7 +147,7 @@ function ProjectsView({ refreshKey, onRefresh }: { refreshKey: number; onRefresh
     e.preventDefault()
     setSubmitting(true)
     try {
-      await fetch(`${API_BASE}/projects`, {
+      await apiFetch("/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ projectName, description }),
@@ -274,10 +301,10 @@ function Timesheets({
     e.preventDefault()
     setSubmitting(true)
     try {
-      const url = editingId ? `${API_BASE}/timesheets/${editingId}` : `${API_BASE}/timesheets`
+      const path = editingId ? `/timesheets/${editingId}` : "/timesheets"
       const method = editingId ? "PUT" : "POST"
 
-      const res = await fetch(url, {
+      const res = await apiFetch(path, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
@@ -298,7 +325,7 @@ function Timesheets({
 
   const handleStatusChange = async (id: number, action: "submit" | "approve" | "reject") => {
     try {
-      const res = await fetch(`${API_BASE}/timesheets/${id}/${action}`, {
+      const res = await apiFetch(`/timesheets/${id}/${action}`, {
         method: "PATCH",
       })
       if (!res.ok) {
@@ -314,7 +341,7 @@ function Timesheets({
   const handleDelete = async (id: number) => {
     if (!confirm("Are you sure you want to delete this timesheet entry?")) return
     try {
-      await fetch(`${API_BASE}/timesheets/${id}`, {
+      await apiFetch(`/timesheets/${id}`, {
         method: "DELETE",
       })
       onRefresh()
