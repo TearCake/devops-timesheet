@@ -1,0 +1,14 @@
+{
+  "application": "timesheet-backend",
+  "deploymentType": "Docker Container",
+  "image": "timesheet-backend:latest",
+  "imageDigest": "sha256:443a5a13306e810a9526ffa71b019bb2e8b50d056468b15493b424f4fbfaf2e9",
+  "containerName": "timesheet-app",
+  "containerId": "c80f23ac9d46dfd96c4940b0b2a920730691592d79fb023ca97514fc6afc7a89",
+  "hostPort": "8085",
+  "containerPort": "8080",
+  "buildNumber": "test-local-2",
+  "healthStatus": "200",
+  "deployedAt": "01/10/2026 18:02:39.45",
+  "status": "DEPLOYED_AND_VERIFIED"
+}
