@@ -39,6 +39,13 @@
         system: true
       tags: [users]
 
+    - name: "[2/6 USERS] Ensure docker group exists"
+      ansible.builtin.group:
+        name: "docker"
+        state: present
+        system: true
+      tags: [users]
+
     - name: "[2/6 USERS] Ensure dedicated application system user exists"
       ansible.builtin.user:
         name: "{{ app_user }}"
@@ -107,6 +114,7 @@
       notify:
         - Reload systemd daemon
         - Restart timesheet service
+      failed_when: false
       tags: [files]
 
     # --------------------------------------------------------------------
