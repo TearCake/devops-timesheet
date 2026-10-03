@@ -1,0 +1,11 @@
+{
+  "action": "ROLLBACK_AND_RECOVERY",
+  "previousImage": "timesheet-backend:1.0.0",
+  "restoredImage": "timesheet-backend:build-6",
+  "containerName": "timesheet-app",
+  "containerId": "bec12d507bc7dcc27936a57cc64950c8850759220c218cf5765bffaa39de1233",
+  "restoredPort": "8085",
+  "healthStatus": "200",
+  "executedAt": "03/10/2026 22:13:36.74",
+  "result": "ROLLBACK_SUCCESSFUL"
+}
