@@ -1,0 +1,142 @@
+========================================================================
+Automated Timesheet Management Platform - Idempotency Validation Report
+Week 14: Demonstration of Ansible Idempotency (Run 1 vs Run 2)
+Environment: Clean Isolated Provisioning Target (Docker Linux)
+Command: ansible-playbook -i 'localhost,' -c local playbook.yml
+Timestamp: 2026-10-03 22:10:16 UTC
+========================================================================
+
+=== RUN 1: INITIAL PROVISIONING (APPLY STATE) ===
+
+PLAY [Provision & Configure Timesheet Application Host] ************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [localhost]
+
+TASK [[1/6 PACKAGES] Update APT package index cache] ***************************
+skipping: [localhost]
+
+TASK [[1/6 PACKAGES] Install required runtime and infrastructure packages] *****
+skipping: [localhost]
+
+TASK [[2/6 USERS] Ensure dedicated application system group exists] ************
+changed: [localhost]
+
+TASK [[2/6 USERS] Ensure docker group exists] **********************************
+changed: [localhost]
+
+TASK [[2/6 USERS] Ensure dedicated application system user exists] *************
+changed: [localhost]
+
+TASK [[3/6 FOLDERS] Create directory structure with secure permissions] ********
+changed: [localhost] => (item={'path': '/opt/timesheet', 'mode': '0755'})
+changed: [localhost] => (item={'path': '/opt/timesheet/bin', 'mode': '0755'})
+changed: [localhost] => (item={'path': '/opt/timesheet/config', 'mode': '0750'})
+changed: [localhost] => (item={'path': '/var/log/timesheet', 'mode': '0755'})
+
+TASK [[4/6 FILES] Deploy application.properties from Jinja2 template] **********
+changed: [localhost]
+
+TASK [[4/6 FILES] Deploy timesheet.env runtime environment variables] **********
+changed: [localhost]
+
+TASK [[4/6 FILES] Deploy operational runner helper script] *********************
+changed: [localhost]
+
+TASK [[4/6 FILES] Deploy systemd service unit file] ****************************
+ok: [localhost]
+
+TASK [[5/6 PORTS] Configure firewall rules for required application ports] *****
+ok: [localhost] => (item={'port': 8080, 'proto': 'tcp', 'comment': 'Spring Boot Native HTTP Port'})
+ok: [localhost] => (item={'port': 8085, 'proto': 'tcp', 'comment': 'Docker Container HTTP Port'})
+ok: [localhost] => (item={'port': 8443, 'proto': 'tcp', 'comment': 'Frontend UI Port (Vite)'})
+ok: [localhost] => (item={'port': 9090, 'proto': 'tcp', 'comment': 'Jenkins CI/CD Dashboard'})
+ok: [localhost] => (item={'port': 3306, 'proto': 'tcp', 'comment': 'MySQL Database Port'})
+
+TASK [[5/6 PORTS] Configure UFW rules where available] *************************
+ok: [localhost] => (item={'port': 8080, 'proto': 'tcp', 'comment': 'Spring Boot Native HTTP Port'})
+ok: [localhost] => (item={'port': 8085, 'proto': 'tcp', 'comment': 'Docker Container HTTP Port'})
+ok: [localhost] => (item={'port': 8443, 'proto': 'tcp', 'comment': 'Frontend UI Port (Vite)'})
+ok: [localhost] => (item={'port': 9090, 'proto': 'tcp', 'comment': 'Jenkins CI/CD Dashboard'})
+ok: [localhost] => (item={'port': 3306, 'proto': 'tcp', 'comment': 'MySQL Database Port'})
+
+TASK [[6/6 SERVICES] Ensure Docker daemon is enabled and running] **************
+ok: [localhost]
+
+TASK [[6/6 SERVICES] Enable timesheet systemd service] *************************
+ok: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=13   changed=7    unreachable=0    failed=0    skipped=3    rescued=0    ignored=0   
+
+------------------------------------------------------------------------
+
+=== RUN 2: IDEMPOTENCY VERIFICATION RUN (IDENTICAL PLAYBOOK ON SAME NODE) ===
+
+PLAY [Provision & Configure Timesheet Application Host] ************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [localhost]
+
+TASK [[1/6 PACKAGES] Update APT package index cache] ***************************
+skipping: [localhost]
+
+TASK [[1/6 PACKAGES] Install required runtime and infrastructure packages] *****
+skipping: [localhost]
+
+TASK [[2/6 USERS] Ensure dedicated application system group exists] ************
+ok: [localhost]
+
+TASK [[2/6 USERS] Ensure docker group exists] **********************************
+ok: [localhost]
+
+TASK [[2/6 USERS] Ensure dedicated application system user exists] *************
+ok: [localhost]
+
+TASK [[3/6 FOLDERS] Create directory structure with secure permissions] ********
+ok: [localhost] => (item={'path': '/opt/timesheet', 'mode': '0755'})
+ok: [localhost] => (item={'path': '/opt/timesheet/bin', 'mode': '0755'})
+ok: [localhost] => (item={'path': '/opt/timesheet/config', 'mode': '0750'})
+ok: [localhost] => (item={'path': '/var/log/timesheet', 'mode': '0755'})
+
+TASK [[4/6 FILES] Deploy application.properties from Jinja2 template] **********
+ok: [localhost]
+
+TASK [[4/6 FILES] Deploy timesheet.env runtime environment variables] **********
+ok: [localhost]
+
+TASK [[4/6 FILES] Deploy operational runner helper script] *********************
+ok: [localhost]
+
+TASK [[4/6 FILES] Deploy systemd service unit file] ****************************
+ok: [localhost]
+
+TASK [[5/6 PORTS] Configure firewall rules for required application ports] *****
+ok: [localhost] => (item={'port': 8080, 'proto': 'tcp', 'comment': 'Spring Boot Native HTTP Port'})
+ok: [localhost] => (item={'port': 8085, 'proto': 'tcp', 'comment': 'Docker Container HTTP Port'})
+ok: [localhost] => (item={'port': 8443, 'proto': 'tcp', 'comment': 'Frontend UI Port (Vite)'})
+ok: [localhost] => (item={'port': 9090, 'proto': 'tcp', 'comment': 'Jenkins CI/CD Dashboard'})
+ok: [localhost] => (item={'port': 3306, 'proto': 'tcp', 'comment': 'MySQL Database Port'})
+
+TASK [[5/6 PORTS] Configure UFW rules where available] *************************
+ok: [localhost] => (item={'port': 8080, 'proto': 'tcp', 'comment': 'Spring Boot Native HTTP Port'})
+ok: [localhost] => (item={'port': 8085, 'proto': 'tcp', 'comment': 'Docker Container HTTP Port'})
+ok: [localhost] => (item={'port': 8443, 'proto': 'tcp', 'comment': 'Frontend UI Port (Vite)'})
+ok: [localhost] => (item={'port': 9090, 'proto': 'tcp', 'comment': 'Jenkins CI/CD Dashboard'})
+ok: [localhost] => (item={'port': 3306, 'proto': 'tcp', 'comment': 'MySQL Database Port'})
+
+TASK [[6/6 SERVICES] Ensure Docker daemon is enabled and running] **************
+ok: [localhost]
+
+TASK [[6/6 SERVICES] Enable timesheet systemd service] *************************
+ok: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=13   changed=0    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0   
+
+========================================================================
+IDEMPOTENCY VERIFICATION CONCLUSION:
+Run 1 (Initial Setup)      : 7 changes applied successfully
+Run 2 (Repeat Execution)   : 0 changes applied (State was already optimal)
+Result                     : 100% IDEMPOTENT - ZERO CONFIGURATION DRIFT
+========================================================================
