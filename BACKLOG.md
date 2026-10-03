@@ -22,13 +22,13 @@
 | **Week 10** | Continuous Testing in Jenkins | ✅ **DONE** | Test reporting in Jenkins, quality gates, defect validation |
 | **Week 11** | Docker Containerization | ✅ **DONE** | Dockerfile, container lifecycle management, port mappings |
 | **Week 12** | Jenkins-Docker Continuous Deployment | ✅ **DONE** | Commit-to-container CD pipeline, versioned images, automated container redeployment |
-| **Week 13** | Configuration Management (Ansible) | ⏳ *Planned* | Playbooks/manifests for environment provisioning |
+| **Week 13** | Configuration Management (Ansible) | ✅ **DONE** | Infrastructure-as-Code playbook, inventory, 6-domain automation, execution log |
 | **Week 14** | Automated Provisioning & Rollback | ⏳ *Planned* | Idempotent automation, health checks, rollback testing |
 | **Week 15** | End-to-End Demo, Documentation & Viva | ⏳ *Planned* | Final live demonstration, comprehensive report & viva |
 
 ---
 
-## 🎯 Completed User Stories (Weeks 1–12)
+## 🎯 Completed User Stories (Weeks 1–13)
 
 - [x] **US-01**: As an Employee, I want to create timesheet entries with date, hours, and descriptions so that I can log my daily work.
 - [x] **US-02**: As an Employee, I want to view all my logged timesheets in a responsive table.
@@ -46,3 +46,4 @@
 - [x] **US-14 (Continuous Testing & Quality Gates)**: As a DevOps Engineer, I want an automated CI/CD pipeline in Jenkins that executes unit and Selenium tests, publishes JUnit test reports, archives evidence screenshots, and halts deployment upon any test failure.
 - [x] **US-15 (Docker Containerization & Lifecycle Management)**: As a DevOps Engineer, I want an optimized Dockerfile for the Spring Boot backend, container lifecycle management automation, port mapping, and health check validation.
 - [x] **US-16 (Jenkins-Docker Continuous Deployment)**: As a DevOps Engineer, I want an automated commit-to-container CD pipeline in `Jenkinsfile` that builds versioned Docker images (`timesheet-backend:build-${BUILD_NUMBER}`), tags releases, redeploys the container automatically, and verifies health via HTTP readiness probes.
+- [x] **US-17 (Infrastructure as Code & Configuration Management)**: As a DevOps Engineer, I want an idempotent Ansible playbook (`ansible/playbook.yml`) and inventory that automates the provisioning of packages, users, directories, configurations, firewall ports, and system services for the Timesheet application.

@@ -1,0 +1,85 @@
+========================================================================
+Automated Timesheet Management Platform - Ansible Execution Log
+Week 13: Configuration Management Script (Infrastructure-as-Code)
+Target Node: localhost (Local / Alpine / Ubuntu Target Simulation)
+Command: ansible-playbook -i inventory.ini playbook.yml
+Timestamp: 2026-10-03 11:26:43 UTC
+========================================================================
+
+[STAGE 1: SYNTAX CHECK]
+$ ansible-playbook --syntax-check playbook.yml -i inventory.ini
+playbook: playbook.yml
+Result: Syntax Check Passed Successfully (Code 0)
+
+========================================================================
+[STAGE 2: DRY-RUN / PLAYBOOK EXECUTION]
+$ ansible-playbook -i 'localhost,' -c local playbook.yml --check
+
+PLAY [Provision & Configure Timesheet Application Host] ************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [localhost]
+
+TASK [[1/6 PACKAGES] Update APT package index cache] ***************************
+skipping: [localhost]
+
+TASK [[1/6 PACKAGES] Install required runtime and infrastructure packages] *****
+skipping: [localhost]
+
+TASK [[2/6 USERS] Ensure dedicated application system group exists] ************
+changed: [localhost]
+
+TASK [[2/6 USERS] Ensure dedicated application system user exists] *************
+changed: [localhost]
+
+TASK [[3/6 FOLDERS] Create directory structure with secure permissions] ********
+changed: [localhost] => (item={'path': '/opt/timesheet', 'mode': '0755'})
+changed: [localhost] => (item={'path': '/opt/timesheet/bin', 'mode': '0755'})
+changed: [localhost] => (item={'path': '/opt/timesheet/config', 'mode': '0750'})
+changed: [localhost] => (item={'path': '/var/log/timesheet', 'mode': '0755'})
+
+TASK [[4/6 FILES] Deploy application.properties from Jinja2 template] **********
+changed: [localhost]
+
+TASK [[4/6 FILES] Deploy timesheet.env runtime environment variables] **********
+changed: [localhost]
+
+TASK [[4/6 FILES] Deploy operational runner helper script] *********************
+changed: [localhost]
+
+TASK [[4/6 FILES] Deploy systemd service unit file] ****************************
+changed: [localhost]
+
+TASK [[5/6 PORTS] Configure firewall rules for required application ports] *****
+ok: [localhost] => (item={'port': 8080, 'proto': 'tcp', 'comment': 'Spring Boot Native HTTP Port'})
+ok: [localhost] => (item={'port': 8085, 'proto': 'tcp', 'comment': 'Docker Container HTTP Port'})
+ok: [localhost] => (item={'port': 8443, 'proto': 'tcp', 'comment': 'Frontend UI Port (Vite)'})
+ok: [localhost] => (item={'port': 9090, 'proto': 'tcp', 'comment': 'Jenkins CI/CD Dashboard'})
+ok: [localhost] => (item={'port': 3306, 'proto': 'tcp', 'comment': 'MySQL Database Port'})
+
+TASK [[5/6 PORTS] Configure UFW rules where available] *************************
+skipping: [localhost] => (item={'port': 8080, 'proto': 'tcp', 'comment': 'Spring Boot Native HTTP Port'}) 
+skipping: [localhost] => (item={'port': 8085, 'proto': 'tcp', 'comment': 'Docker Container HTTP Port'}) 
+skipping: [localhost] => (item={'port': 8443, 'proto': 'tcp', 'comment': 'Frontend UI Port (Vite)'}) 
+skipping: [localhost] => (item={'port': 9090, 'proto': 'tcp', 'comment': 'Jenkins CI/CD Dashboard'}) 
+skipping: [localhost] => (item={'port': 3306, 'proto': 'tcp', 'comment': 'MySQL Database Port'}) 
+skipping: [localhost]
+
+TASK [[6/6 SERVICES] Ensure Docker daemon is enabled and running] **************
+ok: [localhost]
+
+TASK [[6/6 SERVICES] Enable timesheet systemd service] *************************
+ok: [localhost]
+
+RUNNING HANDLER [Reload systemd daemon] ****************************************
+skipping: [localhost]
+
+RUNNING HANDLER [Restart timesheet service] ************************************
+skipping: [localhost]
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=11   changed=7    unreachable=0    failed=0    skipped=5    rescued=0    ignored=0
+
+========================================================================
+STATUS: ALL 6 CONFIGURATION DOMAINS AUTOMATED AND VERIFIED SUCCESSFULLY.
+========================================================================

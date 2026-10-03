@@ -1,0 +1,26 @@
+[Unit]
+Description=Automated Timesheet Management Platform Backend
+After=network.target docker.service mysql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ app_user }}
+Group={{ app_group }}
+WorkingDirectory={{ app_base_dir }}
+EnvironmentFile={{ app_config_dir }}/timesheet.env
+ExecStart=/usr/bin/java {{ java_opts }} -jar {{ app_bin_dir }}/{{ app_name }}-{{ app_version }}.jar --spring.config.location={{ app_config_dir }}/application.properties
+Restart=always
+RestartSec=10
+SuccessExitStatus=143
+StandardOutput=append:{{ app_log_dir }}/timesheet-service.log
+StandardError=append:{{ app_log_dir }}/timesheet-error.log
+
+# Security Sandboxing
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
