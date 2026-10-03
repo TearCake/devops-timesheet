@@ -1,0 +1,167 @@
+# ========================================================================
+# Automated Timesheet Management Platform - Ansible Playbook
+# Week 13: Configuration Management Script (Infrastructure-as-Code)
+# Target: Automate Packages, Users, Folders, Files, Ports, and Services
+# ========================================================================
+
+---
+- name: "Provision & Configure Timesheet Application Host"
+  hosts: all
+  become: true
+  vars_files:
+    - vars/main.yml
+
+  tasks:
+    # --------------------------------------------------------------------
+    # 1. PACKAGES: Package Management & Tooling Installation
+    # --------------------------------------------------------------------
+    - name: "[1/6 PACKAGES] Update APT package index cache"
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      when: ansible_facts['os_family'] == "Debian"
+      tags: [packages]
+
+    - name: "[1/6 PACKAGES] Install required runtime and infrastructure packages"
+      ansible.builtin.apt:
+        name: "{{ system_packages }}"
+        state: present
+      when: ansible_facts['os_family'] == "Debian"
+      tags: [packages]
+
+    # --------------------------------------------------------------------
+    # 2. USERS: Non-Root System User & Group Provisioning
+    # --------------------------------------------------------------------
+    - name: "[2/6 USERS] Ensure dedicated application system group exists"
+      ansible.builtin.group:
+        name: "{{ app_group }}"
+        state: present
+        system: true
+      tags: [users]
+
+    - name: "[2/6 USERS] Ensure dedicated application system user exists"
+      ansible.builtin.user:
+        name: "{{ app_user }}"
+        group: "{{ app_group }}"
+        groups: "{{ app_supplementary_groups }}"
+        append: true
+        shell: "{{ app_user_shell }}"
+        home: "{{ app_user_home }}"
+        create_home: true
+        system: true
+        comment: "Timesheet Application Service Account"
+      tags: [users]
+
+    # --------------------------------------------------------------------
+    # 3. FOLDERS: Directory Hierarchy & Access Control
+    # --------------------------------------------------------------------
+    - name: "[3/6 FOLDERS] Create directory structure with secure permissions"
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: "{{ item.mode }}"
+      loop: "{{ app_directories }}"
+      tags: [folders]
+
+    # --------------------------------------------------------------------
+    # 4. FILES: Configuration Templates & Operational Scripts
+    # --------------------------------------------------------------------
+    - name: "[4/6 FILES] Deploy application.properties from Jinja2 template"
+      ansible.builtin.template:
+        src: templates/application.properties.j2
+        dest: "{{ app_config_dir }}/application.properties"
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: "0640"
+      notify: Restart timesheet service
+      tags: [files]
+
+    - name: "[4/6 FILES] Deploy timesheet.env runtime environment variables"
+      ansible.builtin.template:
+        src: templates/timesheet.env.j2
+        dest: "{{ app_config_dir }}/timesheet.env"
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: "0600"
+      notify: Restart timesheet service
+      tags: [files]
+
+    - name: "[4/6 FILES] Deploy operational runner helper script"
+      ansible.builtin.copy:
+        src: files/timesheet-runner.sh
+        dest: "{{ app_bin_dir }}/timesheet-runner.sh"
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: "0755"
+      tags: [files]
+
+    - name: "[4/6 FILES] Deploy systemd service unit file"
+      ansible.builtin.template:
+        src: templates/timesheet.service.j2
+        dest: /etc/systemd/system/timesheet.service
+        owner: root
+        group: root
+        mode: "0644"
+      notify:
+        - Reload systemd daemon
+        - Restart timesheet service
+      tags: [files]
+
+    # --------------------------------------------------------------------
+    # 5. PORTS: Network Security & Firewall Rules
+    # --------------------------------------------------------------------
+    - name: "[5/6 PORTS] Configure firewall rules for required application ports"
+      ansible.builtin.iptables:
+        chain: INPUT
+        protocol: "{{ item.proto }}"
+        destination_port: "{{ item.port | string }}"
+        jump: ACCEPT
+        comment: "{{ item.comment }}"
+        action: append
+      loop: "{{ allowed_ports }}"
+      failed_when: false
+      tags: [ports]
+
+    - name: "[5/6 PORTS] Configure UFW rules where available"
+      ansible.builtin.command: "ufw allow {{ item.port }}/{{ item.proto }} comment '{{ item.comment }}'"
+      loop: "{{ allowed_ports }}"
+      changed_when: false
+      failed_when: false
+      tags: [ports]
+
+    # --------------------------------------------------------------------
+    # 6. SERVICES: Daemon Enablement & Lifecycle Management
+    # --------------------------------------------------------------------
+    - name: "[6/6 SERVICES] Ensure Docker daemon is enabled and running"
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+      failed_when: false
+      tags: [services]
+
+    - name: "[6/6 SERVICES] Enable timesheet systemd service"
+      ansible.builtin.service:
+        name: timesheet
+        enabled: true
+      failed_when: false
+      tags: [services]
+
+  # ----------------------------------------------------------------------
+  # HANDLERS: Event-Driven Lifecycle Actions
+  # ----------------------------------------------------------------------
+  handlers:
+    - name: Reload systemd daemon
+      ansible.builtin.systemd:
+        daemon_reload: true
+      when: ansible_facts['service_mgr'] == 'systemd'
+      failed_when: false
+
+    - name: Restart timesheet service
+      ansible.builtin.service:
+        name: timesheet
+        state: restarted
+      when: ansible_facts['service_mgr'] == 'systemd'
+      failed_when: false

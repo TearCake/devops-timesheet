@@ -1,0 +1,82 @@
+# ========================================================================
+# Automated Timesheet Management Platform - Ansible Configuration Variables
+# Week 13: Centralized Infrastructure-as-Code Configuration Variables
+# ========================================================================
+
+---
+# 👤 1. User & Group Specification
+app_user: "timesheet"
+app_group: "timesheet"
+app_user_shell: "/bin/bash"
+app_user_home: "/opt/timesheet"
+app_supplementary_groups:
+  - "docker"
+
+# 📁 2. Directory Hierarchy
+app_base_dir: "/opt/timesheet"
+app_bin_dir: "/opt/timesheet/bin"
+app_config_dir: "/opt/timesheet/config"
+app_log_dir: "/var/log/timesheet"
+
+app_directories:
+  - path: "{{ app_base_dir }}"
+    mode: "0755"
+  - path: "{{ app_bin_dir }}"
+    mode: "0755"
+  - path: "{{ app_config_dir }}"
+    mode: "0750"
+  - path: "{{ app_log_dir }}"
+    mode: "0755"
+
+# 📦 3. Required Packages
+system_packages:
+  - "openjdk-17-jre-headless"
+  - "docker.io"
+  - "mysql-client"
+  - "curl"
+  - "git"
+  - "net-tools"
+  - "ufw"
+
+# 📄 4. Application Configuration & Database
+app_name: "timesheet-backend"
+app_version: "0.0.1-SNAPSHOT"
+app_server_port: 8080
+app_docker_port: 8085
+
+db_host: "localhost"
+db_port: 3306
+db_name: "timesheet_db"
+db_username: "root"
+db_password: "root"
+db_url: "jdbc:mysql://{{ db_host }}:{{ db_port }}/{{ db_name }}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+
+# JVM Tuning
+java_opts: "-Xms256m -Xmx512m -XX:+UseG1GC"
+
+# 🔌 5. Network Firewall Ports
+allowed_ports:
+  - port: 8080
+    proto: "tcp"
+    comment: "Spring Boot Native HTTP Port"
+  - port: 8085
+    proto: "tcp"
+    comment: "Docker Container HTTP Port"
+  - port: 8443
+    proto: "tcp"
+    comment: "Frontend UI Port (Vite)"
+  - port: 9090
+    proto: "tcp"
+    comment: "Jenkins CI/CD Dashboard"
+  - port: 3306
+    proto: "tcp"
+    comment: "MySQL Database Port"
+
+# ⚙️ 6. System Services
+managed_services:
+  - name: "docker"
+    state: "started"
+    enabled: true
+  - name: "timesheet"
+    state: "started"
+    enabled: true
