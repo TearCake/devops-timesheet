@@ -1,147 +1,112 @@
-# Automated Timesheet Management Platform
+# ⏱️ Automated Timesheet Management Platform
 
-> **Week 3 skeleton** of a 15-week college DevOps project. This is *not* the final MVP.
-> It contains a clean, runnable architecture (frontend + backend + database) with
-> **placeholder** logic only.
+[![DevOps Curriculum](https://img.shields.io/badge/DevOps-15--Week%20Complete-brightgreen?style=flat-square)](file:///c:/Coding/CLG/dev/BACKLOG.md)
+[![Release](https://img.shields.io/badge/Release-v1.0.0--final-blue?style=flat-square)](file:///c:/Coding/CLG/dev/FINAL_PROJECT_REPORT.md)
+[![CI/CD](https://img.shields.io/badge/Jenkins-Pipeline%20as%20Code-orange?style=flat-square)](file:///c:/Coding/CLG/dev/Jenkinsfile)
+[![Docker](https://img.shields.io/badge/Docker-153MB%20Alpine-blue?style=flat-square)](file:///c:/Coding/CLG/dev/Dockerfile)
+[![Ansible](https://img.shields.io/badge/Ansible-100%25%20Idempotent-red?style=flat-square)](file:///c:/Coding/CLG/dev/ansible/playbook.yml)
+[![Reliability](https://img.shields.io/badge/Health%20Check-5%2F5%20(100%25)-success?style=flat-square)](file:///c:/Coding/CLG/dev/health-check.cmd)
+
+> **Academic Project**: Full-Stack Automated Timesheet Platform with Enterprise CI/CD, Containerization, and Configuration Management.  
+> **Student**: Aditya Chavan (Roll No: 23102B0006)  
+> **Repository**: [https://github.com/TearCake/devops-timesheet.git](https://github.com/TearCake/devops-timesheet.git)
 
 ---
 
-## 1. Project overview
+## 📌 Executive Summary
 
-A web platform for employees to log daily work hours against projects and for
-managers to review/approve them. At this stage the goal is a minimal, working
-local skeleton that proves the chosen architecture holds together end to end.
+The **Automated Timesheet Management Platform** is a 15-week DevOps curriculum project demonstrating modern software delivery from code commit to containerized cloud deployment.
 
-## 2. Architecture overview
+It couples a responsive **React 19 + Vite** frontend and **Spring Boot 3 + MySQL** REST backend with an enterprise DevOps ecosystem:
+- **Declarative Pipeline as Code** in Jenkins (`Jenkinsfile`)
+- **Automated Quality Gates** with headless Selenium WebDriver 4 and failure screenshot capture
+- **Containerization & Continuous Deployment** with multi-stage Docker Alpine images (153MB)
+- **Infrastructure as Code** with Ansible (mathematically proven 100% idempotency)
+- **Disaster Recovery Engine** providing single-command rollback with zero data loss
+
+---
+
+## 🏗️ Architectural Topology
 
 ```text
-┌─────────────────┐        REST / JSON        ┌──────────────────┐        JDBC        ┌────────────┐
-│  React + Vite   │  ───────────────────────► │  Spring Boot API  │  ───────────────► │   MySQL     │
-│  localhost:5173 │  ◄─────────────────────── │  localhost:8080   │  ◄─────────────── │  :3306      │
-└─────────────────┘                           └──────────────────┘                    └────────────┘
+┌─────────────────────────┐          REST / JSON          ┌──────────────────────────┐
+│   React 19 + Vite UI    │ ────────────────────────────► │ Spring Boot Container    │
+│   http://localhost:8443 │ ◄──────────────────────────── │ http://localhost:8085    │
+└─────────────────────────┘                               └────────────┬─────────────┘
+                                                                       │ JDBC
+                                                                       ▼
+┌─────────────────────────┐     Pipeline as Code (CI/CD)   ┌──────────────────────────┐
+│   Jenkins CI/CD Server  │ ────────────────────────────► │ MySQL Relational DB      │
+│   http://localhost:9090 │                               │ localhost:3306           │
+└─────────────────────────┘                               └──────────────────────────┘
 ```
 
-Backend follows a standard layered structure:
-`controller → service → repository → model (JPA entities)`, plus a `config` package for CORS.
+---
 
-## 3. Tech stack
+## 🚀 Live Services & Quick Access
 
-| Layer            | Technology            |
-|------------------|-----------------------|
-| Frontend         | React + Vite          |
-| Backend          | Java + Spring Boot    |
-| Build tool       | Maven                 |
-| Database         | MySQL                 |
-| API style        | REST (JSON)           |
+| Service | Port | Endpoint | Purpose |
+| :--- | :---: | :--- | :--- |
+| **Frontend UI** | `8443` | [http://localhost:8443](http://localhost:8443) | Timesheet logging, manager approval, CSV export |
+| **Backend API** | `8085` | [http://localhost:8085/api/timesheets](http://localhost:8085/api/timesheets) | Live REST API container instance |
+| **Jenkins CI/CD** | `9090` | [http://localhost:9090](http://localhost:9090) | Automated build, testing, and deployment pipeline |
+| **Database** | `3306` | `localhost:3306/timesheet_db` | Relational database persistence |
 
-*Planned for later weeks: Git/GitHub, Jenkins (CI/CD), Selenium (testing), Docker,
-Tomcat/Nginx (deployment), Ansible/Puppet (configuration management).*
+---
 
-## 4. Folder structure
+## 🗂️ 15-Week DevOps Roadmap & Documentation
 
-```text
-/
-├── src/                      # React + Vite frontend (Figma mirror UI)
-├── timesheet-management/     
-│   ├── backend/              # Spring Boot + Maven app
-│   └── database/             # schema.sql
-├── package.json              # Frontend dependencies
-└── README.md
+| Sprint / Week | Focus Area | Detailed Guide & Deliverables | Status |
+| :---: | :--- | :--- | :---: |
+| **Weeks 1–3** | Requirements, Architecture & Setup | [`project.md`](file:///c:/Coding/CLG/dev/project.md), `schema.sql`, SRS summary | ✅ Done |
+| **Weeks 4–6** | Git Collaboration & MVP | [`BRANCHING_STRATEGY.md`](file:///c:/Coding/CLG/dev/BRANCHING_STRATEGY.md), [`MERGE_CONFLICT_EVIDENCE.md`](file:///c:/Coding/CLG/dev/MERGE_CONFLICT_EVIDENCE.md) | ✅ Done |
+| **Weeks 7–8** | Jenkins CI & Pipeline as Code | [`JENKINS_SETUP_GUIDE.md`](file:///c:/Coding/CLG/dev/JENKINS_SETUP_GUIDE.md), [`WEEK8_PIPELINE_GUIDE.md`](file:///c:/Coding/CLG/dev/WEEK8_PIPELINE_GUIDE.md) | ✅ Done |
+| **Weeks 9–10** | Continuous Testing & Quality Gates | [`WEEK9_TEST_PLAN.md`](file:///c:/Coding/CLG/dev/WEEK9_TEST_PLAN.md), [`WEEK10_CONTINUOUS_TESTING.md`](file:///c:/Coding/CLG/dev/WEEK10_CONTINUOUS_TESTING.md) | ✅ Done |
+| **Weeks 11–12** | Docker Containerization & CD | [`WEEK11_DOCKER_LIFECYCLE.md`](file:///c:/Coding/CLG/dev/WEEK11_DOCKER_LIFECYCLE.md), [`WEEK12_JENKINS_DOCKER_CD.md`](file:///c:/Coding/CLG/dev/WEEK12_JENKINS_DOCKER_CD.md) | ✅ Done |
+| **Weeks 13–14** | Ansible IaC, Idempotency & Rollback | [`WEEK13_CONFIGURATION_MANAGEMENT.md`](file:///c:/Coding/CLG/dev/WEEK13_CONFIGURATION_MANAGEMENT.md), [`WEEK14_PROVISIONING_AND_RELIABILITY.md`](file:///c:/Coding/CLG/dev/WEEK14_PROVISIONING_AND_RELIABILITY.md) | ✅ Done |
+| **Week 15** | Final Release, Report & Viva | [`FINAL_PROJECT_REPORT.md`](file:///c:/Coding/CLG/dev/FINAL_PROJECT_REPORT.md), [`DEMO_PRESENTATION_GUIDE.md`](file:///c:/Coding/CLG/dev/DEMO_PRESENTATION_GUIDE.md) | ✅ Done |
+
+---
+
+## ⚡ Quick-Start Commands
+
+### 1. Launch All Services
+```powershell
+# Start Jenkins CI Server:
+cmd /c .\start-jenkins.cmd
+
+# Start Docker Backend Container:
+docker start timesheet-app
+
+# Start Frontend UI:
+npm run dev
 ```
 
-## 5. Prerequisites & Installations
+### 2. Verify Reliability & System Health
+```powershell
+# Run the 5-Tier Health Check Suite:
+.\health-check.cmd
+```
 
-Ensure the following tools are installed on your system:
+### 3. Disaster Recovery & Rollback
+```powershell
+# Rollback to stable release v1.0.0 (in <6 seconds):
+.\rollback.cmd 1.0.0
 
-- **Node.js (18+) & npm**
-- **Java JDK (17+)** (e.g., Eclipse Temurin 17)
-- **Apache Maven (3.8+)**
-- **MySQL Server (8.0+)** running on port `3306`
+# Restore back to latest build:
+.\rollback.cmd build-6
+```
 
-> **Quick Windows Setup via Winget / PowerShell:**
-> ```powershell
-> # Install JDK 17
-> winget install EclipseAdoptium.Temurin.17.JDK
-> 
-> # Install MySQL Server
-> winget install Oracle.MySQL
-> ```
-
----
-
-## 6. Database Setup
-
-1. Ensure MySQL service is running locally on port `3306`.
-2. Import the schema and seed data:
-
-   **On Windows (PowerShell):**
-   ```powershell
-   Get-Content timesheet-management\database\schema.sql | & "C:\Program Files\MySQL\MySQL Server 8.4\bin\mysql.exe" -u root -p
-   ```
-   *(or `Get-Content timesheet-management\database\schema.sql | mysql -u root -p` if MySQL is in your system PATH).*
-
-   **On Linux / macOS / Git Bash:**
-   ```bash
-   mysql -u root -p < timesheet-management/database/schema.sql
-   ```
-
-   This initializes the `timesheet_db` database with `users`, `projects`, and `timesheets` tables and default seed data.
+### 4. Infrastructure as Code Validation
+```powershell
+# Validate Ansible Playbook syntax & idempotency:
+.\ansible\run-ansible.cmd check
+.\ansible\validate-idempotency.cmd
+```
 
 ---
 
-## 7. Backend Setup (Spring Boot)
-
-1. Open `timesheet-management/backend/src/main/resources/application.properties`.
-2. Configure your MySQL credentials:
-   ```properties
-   spring.datasource.username=root
-   spring.datasource.password=YOUR_MYSQL_PASSWORD
-   ```
-3. Start the backend:
-
-   ```bash
-   cd timesheet-management/backend
-   mvn spring-boot:run
-   ```
-
-   The backend REST API will start on **`http://localhost:8080`**.
-
----
-
-## 8. Frontend Setup (React + Vite)
-
-1. Open a new terminal in the project root directory (`/`):
-   ```bash
-   npm install
-   npm run dev
-   ```
-
-2. Open the local URL printed in the terminal (e.g., **`http://localhost:8443`** or **`http://localhost:5173`**).
-
----
-
-## 9. Verification & Testing
-
-1. Open the frontend in your browser and click **Sign in** on the login screen.
-2. The Dashboard will call `GET /api/dashboard` on the backend.
-3. You should see a **green banner** confirming the live connection:
-   > `Connected to backend at localhost:8080.`
-4. If the backend is stopped or unreachable, the UI gracefully falls back to sample preview data.
-
-## 10. Current Week 3 Scope
-
-- ✅ Clean layered backend (controller / service / repository / model / config)
-- ✅ Placeholder entities: User, Project, Timesheet (+ status enum)
-- ✅ Placeholder REST endpoints returning sample JSON
-- ✅ CORS configured for the local frontend
-- ✅ React frontend: Login, Dashboard, Timesheet pages + sidebar
-- ✅ One real frontend → backend test call (Dashboard)
-- ✅ `database/schema.sql` with tables, PKs, FKs, status field
-- ❌ No real authentication, no full CRUD, no business rules (by design)
-
-## 11. Future Week 4+ Roadmap
-
-- **Week 4:** Initialize Git/GitHub, branching strategy, commit history.
-- **Week 5+:** Real CRUD, authentication/roles, status-transition rules,
-  validation, then DevOps activities — Jenkins CI/CD, Selenium tests, Docker,
-  Tomcat/Nginx deployment, and Ansible/Puppet configuration management.
+## 🎓 Viva & Presentation Resources
+- 🎤 **[Professor Demo Presentation Guide](file:///c:/Coding/CLG/dev/DEMO_PRESENTATION_GUIDE.md)**: 60-second elevator pitch, 7-minute live demo script, and top 15 viva questions.
+- 📋 **[Final Project Report](file:///c:/Coding/CLG/dev/FINAL_PROJECT_REPORT.md)**: Architecture documentation, troubleshooting guide, limitations, and future enhancements.
+- 📋 **[Product Backlog & Sprint Tracking](file:///c:/Coding/CLG/dev/BACKLOG.md)**: Sprints 1 through 15 tracking matrix.
