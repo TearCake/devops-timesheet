@@ -24,11 +24,11 @@
 | **Week 12** | Jenkins-Docker Continuous Deployment | ✅ **DONE** | Commit-to-container CD pipeline, versioned images, automated container redeployment |
 | **Week 13** | Configuration Management (Ansible) | ✅ **DONE** | Infrastructure-as-Code playbook, inventory, 6-domain automation, execution log |
 | **Week 14** | Automated Provisioning & Rollback | ✅ **DONE** | Idempotency evidence (changed=0), 5-tier health check (100%), rollback/recovery engine |
-| **Week 15** | End-to-End Demo, Documentation & Viva | ⏳ *Planned* | Final live demonstration, comprehensive report & viva |
+| **Week 15** | Final Release, Documentation & Viva | ✅ **DONE** | Final project report, presentation guide, viva Q&A, release tag v1.0.0-final |
 
 ---
 
-## 🎯 Completed User Stories (Weeks 1–14)
+## 🎯 Completed User Stories (Weeks 1–15)
 
 - [x] **US-01**: As an Employee, I want to create timesheet entries with date, hours, and descriptions so that I can log my daily work.
 - [x] **US-02**: As an Employee, I want to view all my logged timesheets in a responsive table.
@@ -48,3 +48,4 @@
 - [x] **US-16 (Jenkins-Docker Continuous Deployment)**: As a DevOps Engineer, I want an automated commit-to-container CD pipeline in `Jenkinsfile` that builds versioned Docker images (`timesheet-backend:build-${BUILD_NUMBER}`), tags releases, redeploys the container automatically, and verifies health via HTTP readiness probes.
 - [x] **US-17 (Infrastructure as Code & Configuration Management)**: As a DevOps Engineer, I want an idempotent Ansible playbook (`ansible/playbook.yml`) and inventory that automates the provisioning of packages, users, directories, configurations, firewall ports, and system services for the Timesheet application.
 - [x] **US-18 (Automated Provisioning & Reliability Validation)**: As a DevOps Engineer, I want automated validation tools to demonstrate Ansible idempotency (`changed=0` on re-run), multi-tier system health checks (`health-check.cmd` with 100% score), and disaster recovery/rollback (`rollback.cmd`) to previous stable releases with zero data loss.
+- [x] **US-19 (Final End-to-End Release, Documentation & Viva Preparation)**: As a Student/DevOps Engineer, I want a comprehensive final project report (`FINAL_PROJECT_REPORT.md`), a professor presentation script (`DEMO_PRESENTATION_GUIDE.md`), and a semantic release tag (`v1.0.0-final`) proving the complete execution of the 15-week DevOps curriculum.
