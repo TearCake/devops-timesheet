@@ -109,6 +109,106 @@ tbody tr:last-child td { border-bottom: none; }
 .badge.SUBMITTED { color: var(--submitted); }
 .badge.APPROVED { color: var(--approved); }
 .badge.REJECTED { color: var(--rejected); }
+.badge.PENDING { color: var(--submitted); border-color: rgba(244, 183, 64, 0.4); background: rgba(244, 183, 64, 0.1); }
+
+.auth-tabs {
+  display: flex;
+  gap: 8px;
+  background: var(--panel-2);
+  padding: 4px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.auth-tab {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  background: none;
+  border: none;
+  color: var(--muted);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.auth-tab.active {
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.auth-alert {
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 16px;
+  line-height: 1.4;
+  border: 1px solid var(--border);
+}
+
+.auth-alert.info {
+  background: rgba(79, 209, 197, 0.1);
+  border-color: rgba(79, 209, 197, 0.3);
+  color: #7ce7dc;
+}
+
+.auth-alert.success {
+  background: rgba(79, 209, 197, 0.15);
+  border-color: var(--approved);
+  color: #7ce7dc;
+}
+
+.auth-alert.error {
+  background: rgba(242, 112, 125, 0.15);
+  border-color: var(--rejected);
+  color: #ffa1aa;
+}
+
+.auth-alert.warning {
+  background: rgba(244, 183, 64, 0.15);
+  border-color: var(--submitted);
+  color: #fed07e;
+}
+
+.nav-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 7px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 999px;
+  background: var(--submitted);
+  color: #171d2b;
+}
+
+.quick-login-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 18px 0;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.quick-login-divider::before,
+.quick-login-divider::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid var(--border);
+}
+
+.quick-login-divider:not(:empty)::before {
+  margin-right: .75em;
+}
+
+.quick-login-divider:not(:empty)::after {
+  margin-left: .75em;
+}
 
 .banner {
   border-radius: 10px;
@@ -122,7 +222,7 @@ tbody tr:last-child td { border-bottom: none; }
 .banner.fail { border-color: var(--rejected); }
 
 .login-wrap { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
-.login-card { width: 100%; max-width: 360px; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 32px; }
+.login-card { width: 100%; max-width: 440px; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 32px; }
 .login-card h1 { font-size: 20px; margin: 0 0 4px; }
 .login-card p { color: var(--muted); font-size: 13px; margin: 0 0 24px; }
 

@@ -7,6 +7,7 @@ import { useEffect, useState } from "react"
   - Search by keyword/date and filter by status
   - Dynamic Project Management & Selection
   - Role-based workflow (Employee creates/submits, Manager approves/rejects)
+  - Sign-up request workflow (Employee registration creates pending request; Manager reviews and approves/rejects)
   - Dynamic Dashboard statistics
   - Live persistence with Spring Boot REST API & MySQL
 */
@@ -65,6 +66,51 @@ const SAMPLE_SUMMARY = { totalHoursThisWeek: 32.5, pendingApproval: 3, approved:
 
 type Conn = "loading" | "ok" | "fallback"
 type Role = "EMPLOYEE" | "MANAGER"
+
+type SignUpRequest = {
+  requestId: number
+  name: string
+  email: string
+  role: Role
+  status: "PENDING" | "APPROVED" | "REJECTED"
+  createdAt?: string
+}
+
+type AuthUser = {
+  userId?: number
+  name: string
+  email: string
+  role: Role
+  status: "APPROVED" | "PENDING" | "REJECTED"
+}
+
+const INITIAL_REQUESTS: SignUpRequest[] = [
+  {
+    requestId: 1,
+    name: "Rahul Sharma",
+    email: "rahul@timesheet.local",
+    role: "EMPLOYEE",
+    status: "PENDING",
+    createdAt: "2026-08-20 10:30:00",
+  },
+  {
+    requestId: 2,
+    name: "Pooja Patel",
+    email: "pooja@timesheet.local",
+    role: "EMPLOYEE",
+    status: "APPROVED",
+    createdAt: "2026-08-19 14:15:00",
+  },
+]
+
+const INITIAL_USERS: AuthUser[] = [
+  { userId: 1, name: "Asha Rao", email: "asha@timesheet.local", role: "EMPLOYEE", status: "APPROVED" },
+  { userId: 2, name: "Mia", email: "mia@timesheet.local", role: "MANAGER", status: "APPROVED" },
+  { userId: 3, name: "Pooja Patel", email: "pooja@timesheet.local", role: "EMPLOYEE", status: "APPROVED" },
+]
+
+const fallbackRequests: SignUpRequest[] = [...INITIAL_REQUESTS]
+const fallbackUsers: AuthUser[] = [...INITIAL_USERS]
 
 function useConnection<T>(path: string, fallback: T, refreshKey: number = 0) {
   const [data, setData] = useState<T>(fallback)
@@ -602,58 +648,590 @@ function Timesheets({
   )
 }
 
-function Login({ onLogin }: { onLogin: (role: Role) => void }) {
-  const [selectedRole, setSelectedRole] = useState<Role>("EMPLOYEE")
+function AccountRequestsView({
+  refreshKey,
+  onRefresh,
+}: {
+  refreshKey: number
+  onRefresh: () => void
+}) {
+  const [filter, setFilter] = useState<string>("ALL")
+  const [feedback, setFeedback] = useState<{ message: string; type: "success" | "info" } | null>(null)
+  const [actionLoading, setActionLoading] = useState<number | null>(null)
+
+  const { data, conn } = useConnection<{ data: SignUpRequest[] }>(
+    "/auth/signup-requests",
+    { data: fallbackRequests },
+    refreshKey
+  )
+
+  const currentList = data.data || fallbackRequests
+  const requests = currentList.filter((req) => {
+    if (filter === "ALL") return true
+    return req.status === filter
+  })
+
+  const handleAction = async (id: number, action: "approve" | "reject") => {
+    setActionLoading(id)
+    try {
+      const res = await apiFetch(`/auth/signup-requests/${id}/${action}`, {
+        method: "PATCH",
+      })
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`)
+      }
+      setFeedback({
+        message:
+          action === "approve"
+            ? `Successfully approved sign-up request #${id}. The employee account is now activated and can log in.`
+            : `Sign-up request #${id} has been rejected.`,
+        type: action === "approve" ? "success" : "info",
+      })
+      onRefresh()
+    } catch {
+      // Fallback preview mode handling
+      const target = fallbackRequests.find((r) => r.requestId === id)
+      if (target) {
+        target.status = action === "approve" ? "APPROVED" : "REJECTED"
+        if (action === "approve") {
+          fallbackUsers.push({
+            userId: Date.now(),
+            name: target.name,
+            email: target.email,
+            role: target.role,
+            status: "APPROVED",
+          })
+        }
+        setFeedback({
+          message:
+            action === "approve"
+              ? `Approved sign-up request for ${target.name}! Account activated for ${target.email}.`
+              : `Sign-up request for ${target.name} has been rejected.`,
+          type: action === "approve" ? "success" : "info",
+        })
+      }
+      onRefresh()
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const pendingCount = currentList.filter((r) => r.status === "PENDING").length
+
+  return (
+    <>
+      <div className="toolbar">
+        <div>
+          <h1 className="page-title">Account Sign-Up Requests</h1>
+          <p className="page-sub" style={{ margin: 0 }}>
+            Review employee registration requests. Approved accounts can immediately log into the platform.
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          {pendingCount > 0 && (
+            <span className="badge PENDING" style={{ fontSize: "13px", padding: "6px 12px" }}>
+              {pendingCount} Pending Approval
+            </span>
+          )}
+        </div>
+      </div>
+
+      <Banner conn={conn} />
+
+      {feedback && (
+        <div
+          className={`auth-alert ${feedback.type}`}
+          style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+        >
+          <span>{feedback.message}</span>
+          <button
+            onClick={() => setFeedback(null)}
+            style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", fontWeight: "bold" }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      <div className="filter-bar">
+        <select
+          className="filter-select"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+        >
+          <option value="ALL">All Requests ({currentList.length})</option>
+          <option value="PENDING">Pending Approval ({pendingCount})</option>
+          <option value="APPROVED">Approved</option>
+          <option value="REJECTED">Rejected</option>
+        </select>
+      </div>
+
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Request ID</th>
+              <th>Applicant Name</th>
+              <th>Work Email</th>
+              <th>Role</th>
+              <th>Submitted At</th>
+              <th>Status</th>
+              <th>Review Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {requests.length === 0 ? (
+              <tr>
+                <td colSpan={7} style={{ textAlign: "center", color: "var(--muted)", padding: "24px" }}>
+                  No sign-up requests match the selected filter.
+                </td>
+              </tr>
+            ) : (
+              requests.map((r) => (
+                <tr key={r.requestId}>
+                  <td className="mono">#{r.requestId}</td>
+                  <td><strong>{r.name}</strong></td>
+                  <td className="mono">{r.email}</td>
+                  <td>
+                    <span style={{ textTransform: "capitalize", fontSize: "13px" }}>
+                      {r.role.toLowerCase()}
+                    </span>
+                  </td>
+                  <td className="mono" style={{ fontSize: "12px", color: "var(--muted)" }}>
+                    {r.createdAt ? r.createdAt.replace("T", " ").substring(0, 19) : "Recently"}
+                  </td>
+                  <td>
+                    <span className={`badge ${r.status}`}>{r.status}</span>
+                  </td>
+                  <td>
+                    <div className="action-group">
+                      {r.status === "PENDING" ? (
+                        <>
+                          <button
+                            className="action-btn approve"
+                            disabled={actionLoading === r.requestId}
+                            title="Accept and activate this employee account"
+                            onClick={() => handleAction(r.requestId, "approve")}
+                          >
+                            {actionLoading === r.requestId ? "..." : "✓ Accept"}
+                          </button>
+                          <button
+                            className="action-btn reject"
+                            disabled={actionLoading === r.requestId}
+                            title="Reject this registration request"
+                            onClick={() => handleAction(r.requestId, "reject")}
+                          >
+                            {actionLoading === r.requestId ? "..." : "✕ Reject"}
+                          </button>
+                        </>
+                      ) : r.status === "APPROVED" ? (
+                        <span style={{ color: "var(--approved)", fontSize: "12px", fontWeight: 500 }}>
+                          ✓ Account Active
+                        </span>
+                      ) : (
+                        <span style={{ color: "var(--rejected)", fontSize: "12px", fontWeight: 500 }}>
+                          ✕ Request Denied
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </>
+  )
+}
+
+function Login({ onLogin }: { onLogin: (user: AuthUser) => void }) {
+  const [mode, setMode] = useState<"signin" | "signup">("signin")
+
+  // Sign In form fields
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [loginAlert, setLoginAlert] = useState<{ message: string; type: "error" | "warning" | "success" } | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  // Sign Up form fields
+  const [name, setName] = useState("")
+  const [signupEmail, setSignupEmail] = useState("")
+  const [signupPassword, setSignupPassword] = useState("")
+  const [signupRole, setSignupRole] = useState<Role>("EMPLOYEE")
+  const [signupAlert, setSignupAlert] = useState<{ message: string; type: "error" | "warning" | "success" } | null>(null)
+
+  const handleQuickLogin = (role: Role, customEmail?: string) => {
+    if (customEmail === "rahul@timesheet.local") {
+      setLoginAlert({
+        message: "⚠️ Your sign-up request for Rahul Sharma is pending approval by a manager. Please wait until a manager accepts your request before logging in.",
+        type: "warning",
+      })
+      return
+    }
+    const user = fallbackUsers.find((u) => u.role === role) || {
+      userId: role === "EMPLOYEE" ? 1 : 2,
+      name: role === "EMPLOYEE" ? "Asha Rao" : "Mia",
+      email: role === "EMPLOYEE" ? "asha@timesheet.local" : "mia@timesheet.local",
+      role,
+      status: "APPROVED",
+    }
+    onLogin(user)
+  }
+
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoginAlert(null)
+    setLoading(true)
+
+    try {
+      const res = await apiFetch("/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      })
+
+      const data = await res.json().catch(() => ({}))
+
+      if (res.ok) {
+        onLogin(data.user || { name: email.split("@")[0], email, role: data.user?.role || "EMPLOYEE", status: "APPROVED" })
+        return
+      }
+
+      if (res.status === 403) {
+        setLoginAlert({
+          message: data.message || "Your sign-up request is pending approval by a manager.",
+          type: data.message && data.message.toLowerCase().includes("rejected") ? "error" : "warning",
+        })
+        return
+      }
+
+      throw new Error(data.message || "Invalid credentials")
+    } catch (err: any) {
+      // Check fallback mock store if server is offline or returned error
+      const pendingReq = fallbackRequests.find(
+        (r) => r.email.toLowerCase() === email.toLowerCase() && r.status === "PENDING"
+      )
+      if (pendingReq) {
+        setLoginAlert({
+          message: `⚠️ Your sign-up request for ${pendingReq.name} is pending approval by a manager. You will be able to log in once approved.`,
+          type: "warning",
+        })
+        return
+      }
+
+      const rejectedReq = fallbackRequests.find(
+        (r) => r.email.toLowerCase() === email.toLowerCase() && r.status === "REJECTED"
+      )
+      if (rejectedReq) {
+        setLoginAlert({
+          message: `❌ Your sign-up request for ${rejectedReq.name} was rejected by a manager.`,
+          type: "error",
+        })
+        return
+      }
+
+      const matchedUser = fallbackUsers.find((u) => u.email.toLowerCase() === email.toLowerCase())
+      if (matchedUser) {
+        onLogin(matchedUser)
+        return
+      }
+
+      setLoginAlert({
+        message: err.message || "Invalid email or password.",
+        type: "error",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSignupAlert(null)
+    setLoading(true)
+
+    try {
+      const res = await apiFetch("/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email: signupEmail, password: signupPassword, role: signupRole }),
+      })
+
+      const data = await res.json().catch(() => ({}))
+
+      if (res.ok) {
+        if (signupRole === "EMPLOYEE") {
+          setSignupAlert({
+            message: "✅ Sign-up request submitted! As an Employee, your account is now PENDING approval from a manager. Once approved, you can log in.",
+            type: "success",
+          })
+          fallbackRequests.unshift({
+            requestId: Date.now(),
+            name,
+            email: signupEmail,
+            role: "EMPLOYEE",
+            status: "PENDING",
+            createdAt: new Date().toISOString(),
+          })
+        } else {
+          setSignupAlert({
+            message: "✅ Manager account registered successfully! You can now switch to Sign In.",
+            type: "success",
+          })
+          fallbackUsers.push({
+            userId: Date.now(),
+            name,
+            email: signupEmail,
+            role: "MANAGER",
+            status: "APPROVED",
+          })
+        }
+        setName("")
+        setSignupEmail("")
+        setSignupPassword("")
+        return
+      }
+
+      throw new Error(data.message || "Failed to register")
+    } catch (err: any) {
+      if (signupRole === "EMPLOYEE") {
+        fallbackRequests.unshift({
+          requestId: fallbackRequests.length + 1,
+          name,
+          email: signupEmail,
+          role: "EMPLOYEE",
+          status: "PENDING",
+          createdAt: new Date().toISOString(),
+        })
+        setSignupAlert({
+          message: `✅ Sign-up request submitted for ${name}! As an Employee, your account is PENDING manager approval. A manager must accept it before you can log in.`,
+          type: "success",
+        })
+      } else {
+        fallbackUsers.push({
+          userId: Date.now(),
+          name,
+          email: signupEmail,
+          role: "MANAGER",
+          status: "APPROVED",
+        })
+        setSignupAlert({
+          message: `✅ Manager account registered for ${name}! You can now switch to Sign In.`,
+          type: "success",
+        })
+      }
+      setName("")
+      setSignupEmail("")
+      setSignupPassword("")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="login-wrap">
-      <form
-        className="login-card"
-        onSubmit={(e) => {
-          e.preventDefault()
-          onLogin(selectedRole)
-        }}
-      >
+      <div className="login-card">
         <h1>Timesheet Management</h1>
-        <p>Select your persona to explore MVP workflows.</p>
+        <p>Enterprise Timesheet Tracking & Approval Platform</p>
 
-        <label htmlFor="role-select">Select Role Persona</label>
-        <select
-          id="role-select"
-          className="filter-select"
-          style={{ width: "100%", marginBottom: "16px" }}
-          value={selectedRole}
-          onChange={(e) => setSelectedRole(e.target.value as Role)}
-        >
-          <option value="EMPLOYEE">Employee (Asha Rao - Log & Submit)</option>
-          <option value="MANAGER">Manager (Mia - Review & Approve)</option>
-        </select>
+        <div className="auth-tabs">
+          <button
+            type="button"
+            className={`auth-tab ${mode === "signin" ? "active" : ""}`}
+            onClick={() => {
+              setMode("signin")
+              setLoginAlert(null)
+            }}
+          >
+            Sign In
+          </button>
+          <button
+            type="button"
+            className={`auth-tab ${mode === "signup" ? "active" : ""}`}
+            onClick={() => {
+              setMode("signup")
+              setSignupAlert(null)
+            }}
+          >
+            Create Account
+          </button>
+        </div>
 
-        <button className="btn" type="submit">
-          Sign in as {selectedRole === "EMPLOYEE" ? "Employee" : "Manager"}
-        </button>
-      </form>
+        {mode === "signin" ? (
+          <div>
+            {loginAlert && (
+              <div className={`auth-alert ${loginAlert.type}`}>
+                {loginAlert.message}
+              </div>
+            )}
+
+            <form onSubmit={handleSignIn}>
+              <label htmlFor="login-email">Work Email</label>
+              <input
+                id="login-email"
+                type="email"
+                placeholder="name@company.com"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+
+              <label htmlFor="login-password">Password</label>
+              <input
+                id="login-password"
+                type="password"
+                placeholder="••••••••"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+
+              <button className="btn" type="submit" disabled={loading}>
+                {loading ? "Signing in..." : "Sign In with Credentials"}
+              </button>
+            </form>
+
+            <div className="quick-login-divider">Quick Demo Login</div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                style={{ width: "100%", textAlign: "left", display: "flex", justifyContent: "space-between" }}
+                onClick={() => handleQuickLogin("EMPLOYEE")}
+              >
+                <span>👤 <strong>Asha Rao</strong> (Active Employee)</span>
+                <span className="mono" style={{ fontSize: "11px", color: "var(--approved)" }}>Approved</span>
+              </button>
+
+              <button
+                type="button"
+                className="btn-secondary"
+                style={{ width: "100%", textAlign: "left", display: "flex", justifyContent: "space-between" }}
+                onClick={() => handleQuickLogin("MANAGER")}
+              >
+                <span>👔 <strong>Mia</strong> (Timesheet Manager)</span>
+                <span className="mono" style={{ fontSize: "11px", color: "var(--primary)" }}>Manager</span>
+              </button>
+
+              <button
+                type="button"
+                className="btn-secondary"
+                style={{ width: "100%", textAlign: "left", display: "flex", justifyContent: "space-between", borderColor: "rgba(244, 183, 64, 0.4)" }}
+                onClick={() => handleQuickLogin("EMPLOYEE", "rahul@timesheet.local")}
+                title="Click to test what happens when a pending employee attempts to log in"
+              >
+                <span>⏳ <strong>Rahul Sharma</strong> (Pending Request)</span>
+                <span className="mono" style={{ fontSize: "11px", color: "var(--submitted)" }}>Pending Demo</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            {signupAlert && (
+              <div className={`auth-alert ${signupAlert.type}`}>
+                {signupAlert.message}
+              </div>
+            )}
+
+            <form onSubmit={handleSignUp}>
+              <label htmlFor="signup-name">Full Name</label>
+              <input
+                id="signup-name"
+                type="text"
+                placeholder="e.g., Rahul Sharma"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+
+              <label htmlFor="signup-email">Work Email</label>
+              <input
+                id="signup-email"
+                type="email"
+                placeholder="e.g., rahul@timesheet.local"
+                required
+                value={signupEmail}
+                onChange={(e) => setSignupEmail(e.target.value)}
+              />
+
+              <label htmlFor="signup-password">Password</label>
+              <input
+                id="signup-password"
+                type="password"
+                placeholder="Create a password"
+                required
+                value={signupPassword}
+                onChange={(e) => setSignupPassword(e.target.value)}
+              />
+
+              <label htmlFor="signup-role">Account Role</label>
+              <select
+                id="signup-role"
+                className="filter-select"
+                style={{ width: "100%", marginBottom: "12px" }}
+                value={signupRole}
+                onChange={(e) => setSignupRole(e.target.value as Role)}
+              >
+                <option value="EMPLOYEE">Employee (Requires Manager Approval)</option>
+                <option value="MANAGER">Manager (Instant Activation)</option>
+              </select>
+
+              <div
+                className="auth-alert info"
+                style={{ fontSize: "12px", marginBottom: "16px", padding: "8px 12px" }}
+              >
+                {signupRole === "EMPLOYEE"
+                  ? "ℹ Note: Signing up as an Employee creates a pending request. A manager must accept your request before you can log in."
+                  : "ℹ Note: Manager accounts can review and approve employee registration requests."}
+              </div>
+
+              <button className="btn" type="submit" disabled={loading}>
+                {loading
+                  ? "Submitting..."
+                  : signupRole === "EMPLOYEE"
+                  ? "Submit Sign-Up Request"
+                  : "Register Manager Account"}
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
 
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(false)
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null)
   const [role, setRole] = useState<Role>("EMPLOYEE")
-  const [page, setPage] = useState<"dashboard" | "timesheets" | "projects">("dashboard")
+  const [page, setPage] = useState<"dashboard" | "timesheets" | "projects" | "requests">("dashboard")
   const [refreshKey, setRefreshKey] = useState(0)
 
   const triggerRefresh = () => setRefreshKey((prev) => prev + 1)
 
-  if (!loggedIn)
+  const { data: reqData } = useConnection<{ data: SignUpRequest[] }>(
+    "/auth/signup-requests",
+    { data: fallbackRequests },
+    refreshKey
+  )
+
+  const pendingRequestsCount = (reqData.data || fallbackRequests).filter(
+    (r) => r.status === "PENDING"
+  ).length
+
+  if (!loggedIn) {
     return (
       <Login
-        onLogin={(r) => {
-          setRole(r)
+        onLogin={(user) => {
+          setCurrentUser(user)
+          setRole(user.role)
           setLoggedIn(true)
         }}
       />
     )
+  }
 
   return (
     <div className="layout">
@@ -664,7 +1242,7 @@ export default function App() {
         </div>
 
         <div className="role-badge">
-          <span>●</span> {role === "EMPLOYEE" ? "Employee Persona" : "Manager Persona"}
+          <span>●</span> {currentUser ? currentUser.name : (role === "EMPLOYEE" ? "Asha Rao" : "Mia")} ({role})
         </div>
 
         <button
@@ -685,24 +1263,53 @@ export default function App() {
         >
           Projects
         </button>
+
+        {role === "MANAGER" && (
+          <button
+            className={`nav-item ${page === "requests" ? "active" : ""}`}
+            onClick={() => setPage("requests")}
+            style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+          >
+            <span>Account Requests</span>
+            {pendingRequestsCount > 0 && (
+              <span className="nav-badge">{pendingRequestsCount}</span>
+            )}
+          </button>
+        )}
+
         <button
           className="nav-item"
-          onClick={() => setRole(role === "EMPLOYEE" ? "MANAGER" : "EMPLOYEE")}
+          onClick={() => {
+            const newRole = role === "EMPLOYEE" ? "MANAGER" : "EMPLOYEE"
+            setRole(newRole)
+            if (currentUser) {
+              setCurrentUser({ ...currentUser, role: newRole })
+            }
+          }}
         >
           Switch to {role === "EMPLOYEE" ? "Manager" : "Employee"}
         </button>
-        <button className="nav-item" onClick={() => setLoggedIn(false)}>
+        <button
+          className="nav-item"
+          onClick={() => {
+            setLoggedIn(false)
+            setCurrentUser(null)
+          }}
+        >
           Log out
         </button>
         <div className="sidebar-footer">Timesheet App · Full MVP</div>
       </aside>
+
       <main className="content">
         {page === "dashboard" ? (
           <Dashboard refreshKey={refreshKey} />
         ) : page === "timesheets" ? (
           <Timesheets role={role} refreshKey={refreshKey} onRefresh={triggerRefresh} />
-        ) : (
+        ) : page === "projects" ? (
           <ProjectsView refreshKey={refreshKey} onRefresh={triggerRefresh} />
+        ) : (
+          <AccountRequestsView refreshKey={refreshKey} onRefresh={triggerRefresh} />
         )}
       </main>
     </div>
