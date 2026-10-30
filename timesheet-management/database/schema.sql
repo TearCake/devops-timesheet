@@ -1,6 +1,6 @@
 -- =====================================================
 -- Automated Timesheet Management Platform
--- Week 3 skeleton - database schema
+-- Database Schema & Seed Data
 -- MySQL (localhost:3306)
 -- =====================================================
 
@@ -13,7 +13,8 @@ CREATE TABLE IF NOT EXISTS users (
     name     VARCHAR(100) NOT NULL,
     email    VARCHAR(150) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    role     VARCHAR(50)  NOT NULL
+    role     VARCHAR(50)  NOT NULL,
+    status   VARCHAR(20)  NOT NULL DEFAULT 'APPROVED'
 );
 
 -- ---------- Projects ----------
@@ -38,16 +39,31 @@ CREATE TABLE IF NOT EXISTS timesheets (
         FOREIGN KEY (project_id) REFERENCES projects(project_id)
 );
 
--- ---------- Optional seed data (handy for local testing) ----------
-INSERT INTO users (name, email, password, role) VALUES
-    ('Asha Rao', 'asha@example.com', 'placeholder', 'EMPLOYEE'),
-    ('Manager Mia', 'mia@example.com', 'placeholder', 'MANAGER');
+-- ---------- Sign-up Requests (Employee Registration Approval) ----------
+CREATE TABLE IF NOT EXISTS signup_requests (
+    request_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name       VARCHAR(100) NOT NULL,
+    email      VARCHAR(150) NOT NULL UNIQUE,
+    password   VARCHAR(255) NOT NULL,
+    role       VARCHAR(50)  NOT NULL DEFAULT 'EMPLOYEE',
+    status     VARCHAR(20)  NOT NULL DEFAULT 'PENDING',  -- PENDING | APPROVED | REJECTED
+    created_at VARCHAR(50)
+);
 
-INSERT INTO projects (project_name, description) VALUES
-    ('Website Revamp', 'Company marketing website rebuild'),
-    ('Mobile App', 'Internal timesheet mobile client');
+-- ---------- Seed data (handy for local testing & demos) ----------
+INSERT IGNORE INTO users (user_id, name, email, password, role, status) VALUES
+    (1, 'Asha Rao', 'asha@example.com', 'placeholder', 'EMPLOYEE', 'APPROVED'),
+    (2, 'Manager Mia', 'mia@example.com', 'placeholder', 'MANAGER', 'APPROVED');
 
-INSERT INTO timesheets (user_id, project_id, date, hours, description, status) VALUES
-    (1, 1, '2026-08-17', 8.0, 'Homepage layout', 'APPROVED'),
-    (1, 2, '2026-08-18', 6.5, 'API integration', 'SUBMITTED'),
-    (1, 1, '2026-08-18', 2.0, 'Bug fixes', 'DRAFT');
+INSERT IGNORE INTO projects (project_id, project_name, description) VALUES
+    (1, 'Website Revamp', 'Company marketing website rebuild'),
+    (2, 'Mobile App', 'Internal timesheet mobile client'),
+    (3, 'Cloud Migration', 'Infrastructure migration to AWS');
+
+INSERT IGNORE INTO timesheets (timesheet_id, user_id, project_id, date, hours, description, status) VALUES
+    (1, 1, 1, '2026-08-17', 8.0, 'Homepage layout', 'APPROVED'),
+    (2, 1, 2, '2026-08-18', 6.5, 'API integration', 'SUBMITTED'),
+    (3, 1, 1, '2026-08-18', 2.0, 'Bug fixes', 'DRAFT');
+
+INSERT IGNORE INTO signup_requests (request_id, name, email, password, role, status, created_at) VALUES
+    (1, 'Rahul Sharma', 'rahul@example.com', 'password123', 'EMPLOYEE', 'PENDING', '2026-10-30 10:15');
