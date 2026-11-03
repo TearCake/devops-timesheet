@@ -1,4 +1,5 @@
 {
+  "title": "Timesheet",
   "description": "Streamline timesheet management with a user-friendly platform for tracking hours and project details, designed for teams and organizations.",
   "robots": {
     "index": false
